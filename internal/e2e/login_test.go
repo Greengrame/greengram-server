@@ -32,6 +32,7 @@ import (
 	"github.com/Greengrame/greengram-server/internal/bots"
 	"github.com/Greengrame/greengram-server/internal/channels"
 	"github.com/Greengrame/greengram-server/internal/edge"
+	"github.com/Greengrame/greengram-server/internal/erase"
 	"github.com/Greengrame/greengram-server/internal/legacy"
 	"github.com/Greengrame/greengram-server/internal/media"
 	"github.com/Greengrame/greengram-server/internal/messages"
@@ -63,6 +64,7 @@ type stack struct {
 	secret   *secret.Key
 	srv      *edge.Server
 	reports  *reports.Service
+	erase    *erase.Service
 }
 
 func db(t *testing.T) *store.Store {
@@ -154,6 +156,8 @@ func startOn(t *testing.T, st *store.Store, inst []byte) *stack {
 	a.RegisterStories(stories.New(st.Pool))
 	rep := reports.New(st.Pool)
 	a.RegisterReports(rep)
+	eraser := erase.New(st.Pool, set)
+	a.RegisterErase(eraser)
 	botSvc := bots.New(st.Pool)
 	botAPI, err := a.Bots(ctx, botSvc, "Greengram")
 	if err != nil {
@@ -169,7 +173,7 @@ func startOn(t *testing.T, st *store.Store, inst []byte) *stack {
 	(&web.Broadcasts{Accounts: accounts, Bots: botSvc, Sender: a}).Register(mux)
 	hs := httptest.NewServer(botAPI.Wrap(mux))
 	t.Cleanup(hs.Close)
-	return &stack{srv: srv, key: k, tcp: port, http: hs, media: med, db: st, accounts: accounts, settings: set, mux: mux, api: a, stars: ss, secret: secret.FromBytes(inst), reports: rep}
+	return &stack{srv: srv, key: k, tcp: port, http: hs, media: med, db: st, accounts: accounts, settings: set, mux: mux, api: a, stars: ss, secret: secret.FromBytes(inst), reports: rep, erase: eraser}
 }
 
 // browser is one cookie jar talking to the HTTP API.

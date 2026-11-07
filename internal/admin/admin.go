@@ -22,6 +22,7 @@ import (
 
 	"github.com/Greengrame/greengram-server/internal/account"
 	"github.com/Greengrame/greengram-server/internal/channels"
+	"github.com/Greengrame/greengram-server/internal/erase"
 	"github.com/Greengrame/greengram-server/internal/media"
 	"github.com/Greengrame/greengram-server/internal/settings"
 	"github.com/Greengrame/greengram-server/internal/stars"
@@ -47,6 +48,9 @@ type API struct {
 	Extra []func(ctx context.Context, out map[string]any) error
 	// AccessChanged tells someone's apps their account state changed.
 	AccessChanged func(user int64)
+	// Erased signs a deleted account's apps out and delivers its chat
+	// updates (api.AccountErased).
+	Erased func(erase.Result)
 	// AnswerAppeal has @SpamBot tell someone what was decided.
 	AnswerAppeal func(ctx context.Context, user int64, approved bool, reason string) error
 	// Moderator carries out the Reports page's deletes and bans.
@@ -100,6 +104,7 @@ func (a *API) Register(mux *http.ServeMux) {
 		mux.HandleFunc("DELETE /api/admin/sticker-packs/{id}", a.handle(a.deleteStickerPack))
 		mux.HandleFunc("GET /api/sticker-media/{id}", a.file(a.stickerFile))
 	}
+	a.registerCirculation(mux)
 	mux.HandleFunc("GET /api/admin/settings", a.handle(a.getSettings))
 	mux.HandleFunc("PATCH /api/admin/settings", a.handle(a.saveSettings))
 	mux.HandleFunc("POST /api/admin/countries", a.handle(a.saveCountry))

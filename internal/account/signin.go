@@ -448,6 +448,9 @@ func (s *Service) completeTx(ctx context.Context, tx pgx.Tx, flowToken string, u
 	if err != nil {
 		return Session{}, err
 	}
+	if _, err := tx.Exec(ctx, "UPDATE users SET last_seen_at=now() WHERE id=$1", u.ID); err != nil {
+		return Session{}, err
+	}
 	return Session{Token: token, User: u}, nil
 }
 
@@ -529,3 +532,41 @@ func (s *Service) SetPassword(ctx context.Context, sessionToken, current, next s
 		return err
 	})
 }
+
+// ConfirmDeletion is the password check before account.deleteAccount: the
+// password never travels over MTProto, so the apps send it here first and
+// the session that passed may then delete the account for DeletionWindow.
+// An account without a password (imported, never set) passes as it is.
+func (s *Service) ConfirmDeletion(ctx context.Context, sessionToken, pw string, c Client) error {
+	u, hash, err := s.SessionUser(ctx, sessionToken)
+	if err != nil {
+		return err
+	}
+	if err := s.limits.hit(fmt.Sprintf("delete-account:%d:%s", u.ID, limitIP(c.IP)), 5, 10*time.Minute, s.now()); err != nil {
+		return err
+	}
+	if u.HasPassword() && (len(pw) > 256 || !password.Verify(pw, u.password)) {
+		return fail(400, "That password is not correct.")
+	}
+	_, err = s.db.Exec(ctx, "UPDATE sessions SET delete_confirmed_at=now() WHERE token_hash=$1", hash)
+	return err
+}
+
+// DeletionWindow is how long a passed ConfirmDeletion lasts.
+const DeletionWindow = 5 * time.Minute
+
+// DeletionConfirmed is whether the session passed ConfirmDeletion within
+// DeletionWindow, or the account has no password to check.
+func (s *Service) DeletionConfirmed(ctx context.Context, u User, sessionHash string) (bool, error) {
+	if !u.HasPassword() {
+		return true, nil
+	}
+	var ok bool
+	err := s.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM sessions WHERE token_hash=$1 AND user_id=$2 AND delete_confirmed_at > now() - make_interval(secs => $3))",
+		sessionHash, u.ID, DeletionWindow.Seconds()).Scan(&ok)
+	return ok, err
+}
+
+// HasPassword is whether signing in takes a password; imported accounts
+// may never have set one.
+func (u User) HasPassword() bool { return strings.HasPrefix(u.password, "$") }

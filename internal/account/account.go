@@ -215,7 +215,7 @@ var usernameRe = regexp.MustCompile(`^[a-z0-9_]{3,32}$`)
 var reservedUsernames = map[string]bool{
 	"wallet": true, "botfather": true, "stickers": true, "fragmebot": true, "spambot": true, "bugsbot": true, "greengram_stars": true, "admin": true,
 	"instance_premium_payments": true, "instance_stars_payments": true, "instance_announcements": true, "announcements": true,
-	"instance_giveaways": true, "instance_gifts": true,
+	"instance_giveaways": true, "instance_gifts": true, "instance_deleted_accounts": true,
 }
 
 func normUsername(v string) string {

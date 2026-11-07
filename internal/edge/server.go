@@ -130,6 +130,19 @@ func (s *Server) forgetKey(id int64) {
 	s.keyMu.Unlock()
 }
 
+// DropKeys forgets keys the store no longer has (an account deletion took
+// them): the cached copies and their sessions go, so the next packet on one
+// gets -404 like any unknown key and the app starts over at sign-in.
+func (s *Server) DropKeys(ids []int64) {
+	for _, id := range ids {
+		s.forgetKey(id)
+		s.sessions.dropKey(id)
+	}
+}
+
+// BoundTo lists the temp keys bound to perm that have sessions here.
+func (s *Server) BoundTo(perm int64) []int64 { return s.sessions.boundTo(perm) }
+
 // expireKey drops a temp key whose time is up. The client gets -404 and
 // makes a new one.
 func (s *Server) expireKey(ctx context.Context, id int64) {

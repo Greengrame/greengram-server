@@ -19,6 +19,7 @@ import (
 	"github.com/Greengrame/greengram-server/internal/bots"
 	"github.com/Greengrame/greengram-server/internal/channels"
 	"github.com/Greengrame/greengram-server/internal/edge"
+	"github.com/Greengrame/greengram-server/internal/erase"
 	"github.com/Greengrame/greengram-server/internal/media"
 	"github.com/Greengrame/greengram-server/internal/messages"
 	"github.com/Greengrame/greengram-server/internal/reports"
@@ -43,6 +44,7 @@ type API struct {
 	stars    *stars.Service                 // nil until RegisterStars
 	stories  *stories.Service               // nil until RegisterStories
 	reports  *reports.Service               // nil until RegisterReports
+	erase    *erase.Service                 // nil until RegisterErase
 	topup    atomic.Pointer[wallet.Service] // set by RegisterTopup; nil sells no Stars
 	// set by Bots; nil keeps bots off
 	bots   *bots.Service

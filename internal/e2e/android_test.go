@@ -323,9 +323,10 @@ func TestAndroidPrivateMethodIDs(t *testing.T) {
 		if err := wantRPCErr(err, "METHOD_NOT_IMPLEMENTED"); err != nil {
 			return fmt.Errorf("getStatsURL: %w", err)
 		}
-		// account.deleteAccount#418d4e0b reason:string: no self-deletion over MTProto
+		// account.deleteAccount#418d4e0b reason:string: read into today's
+		// request; without the password check over HTTPS first it refuses
 		_, err = d.raw(body(0x418d4e0b, func(b *bin.Buffer) { b.PutString("Decline ToS update") }))
-		if err := wantRPCErr(err, "METHOD_NOT_IMPLEMENTED"); err != nil {
+		if err := wantRPCErr(err, "PASSWORD_REQUIRED"); err != nil {
 			return fmt.Errorf("deleteAccount: %w", err)
 		}
 		// account.uploadWallPaper#dd853661 file mime_type settings

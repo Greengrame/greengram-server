@@ -135,7 +135,7 @@ func (s *Service) Purchase(ctx context.Context, userID int64, quoteID string) (m
 			}
 		}
 		seller = it.Owner
-		if _, err := tx.Exec(ctx, "UPDATE fragment_items SET owner_id=$2, listed=false, purchased_at=$3, active=false, position=0 WHERE id=$1", it.ID, userID, now); err != nil {
+		if _, err := tx.Exec(ctx, "UPDATE fragment_items SET owner_id=$2, listed=false, purchased_at=$3, active=false, position=0, last_sale_units=units WHERE id=$1", it.ID, userID, now); err != nil {
 			return err
 		}
 		bal, err := tonBalance(ctx, tx, userID)

@@ -82,6 +82,11 @@ func tgUser(u account.User, self bool) *tg.User {
 	if self {
 		out.Phone = strings.TrimPrefix(u.Phone, "+")
 	}
+	if u.State == "deleted" {
+		// clients draw "Deleted Account" and close the composer
+		out.Deleted, out.Username, out.Usernames, out.Status, out.Premium = true, "", nil, nil, false
+		out.EmojiStatus = nil
+	}
 	return out
 }
 

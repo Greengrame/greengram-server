@@ -27,6 +27,7 @@ var frozenOK = map[tlprofile.SemanticID]bool{}
 
 func init() {
 	for _, m := range []tlprofile.SemanticID{
+		tlprofile.SemanticMethodAccountDeleteAccount,
 		tlprofile.SemanticMethodAccountGetAccountTTL,
 		tlprofile.SemanticMethodAccountGetAuthorizations,
 		tlprofile.SemanticMethodAccountGetAutoDownloadSettings,

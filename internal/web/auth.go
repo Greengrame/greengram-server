@@ -36,6 +36,8 @@ func (a *Auth) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/username", a.handle(a.username))
 	mux.HandleFunc("POST /api/auth/register", a.handle(a.register))
 	mux.HandleFunc("POST /api/auth/password/set", a.handle(a.setPassword))
+	mux.HandleFunc("GET /api/account/deletion", a.handle(a.deletion))
+	mux.HandleFunc("POST /api/account/deletion", a.handle(a.confirmDeletion))
 	mux.HandleFunc("POST /api/auth/approve", a.handle(a.approve))
 	mux.HandleFunc("GET /api/auth/status", a.handle(a.status))
 	mux.HandleFunc("POST /api/auth/webtoken", a.handle(a.webToken))
@@ -202,6 +204,21 @@ func (a *Auth) ready(q *req, s account.Session, err error) (any, error) {
 
 func (a *Auth) setPassword(q *req) (any, error) {
 	return ok(a.Accounts.SetPassword(q.ctx, q.cookie("session"), q.str("currentPassword"), q.str("password"), q.client()))
+}
+
+// deletion tells the apps whether deleting the account will ask for the
+// password; confirmDeletion checks it (see account.ConfirmDeletion), and
+// account.deleteAccount follows over MTProto.
+func (a *Auth) deletion(q *req) (any, error) {
+	u, _, err := a.Accounts.SessionUser(q.ctx, q.cookie("session"))
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"hasPassword": u.HasPassword(), "windowSeconds": int(account.DeletionWindow.Seconds())}, nil
+}
+
+func (a *Auth) confirmDeletion(q *req) (any, error) {
+	return ok(a.Accounts.ConfirmDeletion(q.ctx, q.cookie("session"), q.str("password"), q.client()))
 }
 
 func (a *Auth) approve(q *req) (any, error) {

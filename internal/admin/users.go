@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/Greengrame/greengram-server/internal/erase"
 	"github.com/Greengrame/greengram-server/internal/password"
 )
 
@@ -537,17 +538,53 @@ func (a *API) detail(q *req, m member) (any, error) {
 		return nil, err
 	}
 
+	var photos int64
+	ttl := 365
+	var lastSeen int64
+	var deletedAt *int64
+	var source *string
+	if err := a.DB.QueryRow(ctx, `SELECT (SELECT count(*) FROM user_photos WHERE user_id=$1), coalesce((SELECT account_ttl_days FROM account_prefs WHERE user_id=$1), 365),
+		extract(epoch FROM u.last_seen_at)::bigint, extract(epoch FROM u.deleted_at)::bigint, u.deletion_source FROM users u WHERE u.id=$1`, m.ID).Scan(&photos, &ttl, &lastSeen, &deletedAt, &source); err != nil {
+		return nil, err
+	}
+	ledger, err := a.memberLedger(ctx, m.ID)
+	if err != nil {
+		return nil, err
+	}
+	frag, err := a.fragmentHeld(ctx, m.ID)
+	if err != nil {
+		return nil, err
+	}
 	return map[string]any{
 		"user":           m,
-		"ledger":         []any{},
+		"ledger":         ledger,
 		"messageCount":   msgs,
 		"chatCount":      len(memberships),
-		"photoCount":     0,
+		"photoCount":     photos,
 		"sessions":       sessions,
 		"memberships":    memberships,
 		"privacy":        privacy,
-		"accountTtlDays": 0,
+		"accountTtlDays": ttl,
+		"lastSeenAt":     lastSeen,
+		"deletedAt":      deletedAt,
+		"deletionSource": source,
+		"fragment":       frag,
 	}, nil
+}
+
+// memberLedger is the account's newest 200 Stars ledger rows.
+func (a *API) memberLedger(ctx context.Context, id int64) ([]map[string]any, error) {
+	rows, err := a.DB.Query(ctx, "SELECT id, amount, reason, created_at, title FROM star_ledger WHERE user_id=$1 ORDER BY id DESC LIMIT 200", id)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (map[string]any, error) {
+		var lid, amount int64
+		var at int
+		var reason, title string
+		err := r.Scan(&lid, &amount, &reason, &at, &title)
+		return map[string]any{"id": lid, "amount": amount, "reason": reason, "created_at": at, "title": title}, err
+	})
 }
 
 var usernameRe = regexp.MustCompile(`^[a-z0-9_]{3,32}$`)
@@ -555,7 +592,7 @@ var usernameRe = regexp.MustCompile(`^[a-z0-9_]{3,32}$`)
 var reserved = map[string]bool{
 	"wallet": true, "botfather": true, "stickers": true, "fragmebot": true, "greengram_stars": true, "admin": true,
 	"instance_premium_payments": true, "instance_stars_payments": true, "instance_announcements": true, "announcements": true,
-	"instance_giveaways": true, "instance_gifts": true,
+	"instance_giveaways": true, "instance_gifts": true, "instance_deleted_accounts": true,
 }
 
 func (a *API) editUser(q *req) (any, error) {
@@ -681,11 +718,20 @@ func (a *API) access(q *req) (any, error) {
 		return nil, fail(400, "Choose a valid account state and a reason of up to 500 characters.")
 	}
 	confirmation, _ := q.str("confirmation")
+	var erased *erase.Result
 	err = a.tx(q.ctx, func(tx pgx.Tx) error {
+		if state == "deleted" {
+			res, err := a.eraseMember(q.ctx, tx, q.me.ID, id, reason, confirmation)
+			erased = &res
+			return err
+		}
 		return a.setAccess(q.ctx, tx, q.me.ID, id, state, reason, confirmation)
 	})
 	if err != nil {
 		return nil, err
+	}
+	if erased != nil && a.Erased != nil {
+		a.Erased(*erased)
 	}
 	a.tellAccessChanged(id)
 	m, _, err := a.loadMember(q.ctx, nil, id)
@@ -712,9 +758,7 @@ func (a *API) setAccess(ctx context.Context, tx pgx.Tx, actor, id int64, state, 
 		return fail(409, "Deleted accounts cannot be restored.")
 	}
 	if state == "deleted" {
-		if confirmation != t.Username {
-			return fail(400, "Type the account username to confirm deletion.")
-		}
+		return fail(400, "Delete accounts through eraseMember.")
 	}
 	blocked := state == "locked" || state == "banned" || state == "suspended" || state == "deleted"
 	stored := state
@@ -730,21 +774,6 @@ func (a *API) setAccess(ctx context.Context, tx pgx.Tx, actor, id int64, state, 
 			return err
 		}
 	}
-	erased := false
-	if state == "deleted" {
-		// anonymize; messages stay, credentials and identifiers go
-		if _, err := tx.Exec(ctx, `UPDATE users SET name='Deleted Account', username='deleted_' || id, password='',
-			phone=NULL, phone_lookup=NULL, bio='', username_public=false, premium_until=0, premium_starts_at=0 WHERE id=$1`, id); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, "DELETE FROM privacy_rules WHERE user_id=$1", id); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, "DELETE FROM contacts WHERE owner_id=$1 OR user_id=$1", id); err != nil {
-			return err
-		}
-		erased = true
-	}
 	if state != "frozen" {
 		// settled by hand; nothing left for the appeal to decide
 		if err := closeAppeal(ctx, tx, id, actor, state == "active"); err != nil {
@@ -752,7 +781,32 @@ func (a *API) setAccess(ctx context.Context, tx pgx.Tx, actor, id int64, state, 
 		}
 	}
 	return audit(ctx, tx, actor, "account_"+state, id, map[string]any{
-		"previousState": t.AccountState, "state": state, "reason": strings.TrimSpace(reason), "erased": erased})
+		"previousState": t.AccountState, "state": state, "reason": strings.TrimSpace(reason), "erased": false})
+}
+
+// eraseMember is Delete Account: the same checks as any access change plus
+// the typed username, then the deletion every path shares (internal/erase),
+// which writes its own audit row.
+func (a *API) eraseMember(ctx context.Context, tx pgx.Tx, actor, id int64, reason, confirmation string) (erase.Result, error) {
+	t, found, err := a.loadMember(ctx, tx, id)
+	if err != nil {
+		return erase.Result{}, err
+	}
+	switch {
+	case !found:
+		return erase.Result{}, fail(404, "Account not found.")
+	case t.IsSystem:
+		return erase.Result{}, fail(400, "System identities cannot be restricted as member accounts.")
+	case t.ID == actor || t.Role == "admin":
+		return erase.Result{}, fail(400, "You cannot restrict your own account or another administrator here.")
+	case t.isBot:
+		return erase.Result{}, fail(400, "Use bot management for bot accounts.")
+	case t.AccountState == "deleted":
+		return erase.Result{}, fail(409, "Deleted accounts cannot be restored.")
+	case confirmation != t.Username:
+		return erase.Result{}, fail(400, "Type the account username to confirm deletion.")
+	}
+	return erase.Erase(ctx, tx, erase.Request{User: id, Actor: actor, Source: erase.SourceAdmin, Reason: reason}, time.Now())
 }
 
 func (a *API) tellAccessChanged(id int64) {
