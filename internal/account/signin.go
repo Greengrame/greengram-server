@@ -123,10 +123,19 @@ var (
 // GivePhone stores the number on the flow and says what comes next:
 // "password" to sign in, "registration" to create the account.
 func (s *Service) GivePhone(ctx context.Context, token, phone string, c Client) (string, error) {
+	next, _, err := s.GiveNumber(ctx, token, phone, c)
+	return next, err
+}
+
+// GiveNumber is GivePhone that also returns the number the server made up
+// for a sign-up when the instance hands numbers out (signupGeneratedNumbers);
+// whatever number came with the request is then ignored.
+func (s *Service) GiveNumber(ctx context.Context, token, phone string, c Client) (string, string, error) {
 	phone = "+" + digits(phone)
 	// before the transaction: it may need a connection of its own
-	open := s.settings.Get(ctx).RegistrationEnabled
-	var next string
+	set := s.settings.Get(ctx)
+	open := set.RegistrationEnabled
+	var next, made string
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
 		f, err := s.flow(ctx, tx, token)
 		if err != nil {
@@ -138,7 +147,13 @@ func (s *Service) GivePhone(ctx context.Context, token, phone string, c Client) 
 		next = "password"
 		if f.state == "phone_register" {
 			next = "registration"
-			if !registerPhoneRe.MatchString(phone) {
+			if set.SignupGeneratedNumbers && open {
+				var err error
+				if phone, err = s.GenerateNumber(ctx, tx); err != nil {
+					return err
+				}
+				made = phone
+			} else if !registerPhoneRe.MatchString(phone) {
 				return fail(400, "Enter a phone number with 4–16 digits including the country code.")
 			}
 			if err := collectibleCode(ctx, tx, phone); err != nil {
@@ -160,7 +175,10 @@ func (s *Service) GivePhone(ctx context.Context, token, phone string, c Client) 
 		_, err = tx.Exec(ctx, "UPDATE auth_flows SET state=$2, phone=$3 WHERE id=$1", f.id, next, enc)
 		return err
 	})
-	return next, err
+	if err != nil {
+		made = ""
+	}
+	return next, made, err
 }
 
 // SignInPhone finishes a phone flow with the password.

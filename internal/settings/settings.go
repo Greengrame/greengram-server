@@ -20,6 +20,9 @@ type Settings struct {
 	// InactiveAccountDeletion runs the job that deletes accounts away for
 	// longer than their account.setAccountTTL period.
 	InactiveAccountDeletion bool `json:"inactiveAccountDeletion"`
+	// SignupGeneratedNumbers has sign-up make up a +888 number instead of
+	// asking for one, so nobody types their real phone.
+	SignupGeneratedNumbers bool `json:"signupGeneratedNumbers"`
 
 	StarsAdjustmentLimit       int `json:"starsAdjustmentLimit"`
 	StarsPerUSD                int `json:"starsPerUSD"`

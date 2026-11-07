@@ -51,6 +51,9 @@ type API struct {
 	// Erased signs a deleted account's apps out and delivers its chat
 	// updates (api.AccountErased).
 	Erased func(erase.Result)
+	// IdentityReset tells the account's apps and the people who see it
+	// that its profile was reset (api.IdentityReset).
+	IdentityReset func(user int64)
 	// AnswerAppeal has @SpamBot tell someone what was decided.
 	AnswerAppeal func(ctx context.Context, user int64, approved bool, reason string) error
 	// Moderator carries out the Reports page's deletes and bans.
@@ -75,6 +78,7 @@ func (a *API) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/admin/appeals/{id}/approve", a.handle(a.approveAppeal))
 	mux.HandleFunc("POST /api/admin/appeals/{id}/reject", a.handle(a.rejectAppeal))
 	mux.HandleFunc("POST /api/admin/users/{id}/password", a.handle(a.resetPassword))
+	mux.HandleFunc("POST /api/admin/users/{id}/reset", a.handle(a.resetIdentity))
 	mux.HandleFunc("DELETE /api/admin/users/{id}/sessions", a.handle(a.endUserSessions))
 	mux.HandleFunc("DELETE /api/admin/users/{id}/sessions/{session}", a.handle(a.endUserSessions))
 	mux.HandleFunc("GET /api/admin/bots/{id}", a.handle(a.botDetail))

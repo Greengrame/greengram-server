@@ -295,3 +295,12 @@ test('circulation pages come from the server, and the member dialog links to the
     let payload = settings.settingsData({ ...data.settings, inactiveAccountDeletion: true }, { ...data.settings, inactiveAccountDeletion: false });
     expect(payload.inactiveAccountDeletion).toBe(false);
 });
+
+test('reset info sends only the picked fields, in order, and says which', () => {
+    expect(memberDialog.resetPicked([])).toEqual([]);
+    expect(memberDialog.resetPicked(['bio', 'phone', 'nope'])).toEqual(['phone', 'bio']);
+    expect(memberDialog.resetSummary(['birthday', 'username'])).toEqual(['Username', 'Birthday']);
+    expect(memberDialog.resetFields.map(([key]) => key)).toEqual(['phone', 'name', 'bio', 'username', 'photos', 'birthday', 'channel']);
+    let payload = settings.settingsData({ ...data.settings, signupGeneratedNumbers: false }, { ...data.settings, signupGeneratedNumbers: true });
+    expect(payload.signupGeneratedNumbers).toBe(true);
+});

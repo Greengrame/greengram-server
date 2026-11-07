@@ -30,7 +30,7 @@ export const settingSections = [
 ];
 
 const fields = settingSections.flatMap(section => section.fields);
-const switches = ['registrationEnabled', 'inactiveAccountDeletion'];
+const switches = ['registrationEnabled', 'inactiveAccountDeletion', 'signupGeneratedNumbers'];
 
 // every key the server sent goes back; everything but the name and the switch is a number
 export function settingsData(settings, values) {
@@ -163,6 +163,13 @@ export default function Settings() {
                             <span className="block text-xs text-kumo-subtle">Existing members can still sign in when registration is closed.</span>
                         </div>
                         <Switch aria-label="Allow new registrations" checked={Boolean(values.registrationEnabled)} onCheckedChange={checked => change('registrationEnabled', checked)} />
+                    </div>
+                    <div className="flex items-start justify-between gap-6 border-t border-kumo-hairline pt-4">
+                        <div className="min-w-0">
+                            <span className="block text-sm font-medium text-kumo-default">Give new accounts a made-up number</span>
+                            <span className="block text-xs text-kumo-subtle">Sign-up skips the phone number and hands out a +888 number instead, so nobody types their real one. Existing accounts keep theirs.</span>
+                        </div>
+                        <Switch aria-label="Give new accounts a made-up number" checked={Boolean(values.signupGeneratedNumbers)} onCheckedChange={checked => change('signupGeneratedNumbers', checked)} />
                     </div>
                     <div className="flex items-start justify-between gap-6 border-t border-kumo-hairline pt-4">
                         <div className="min-w-0">

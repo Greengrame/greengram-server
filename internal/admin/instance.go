@@ -247,7 +247,10 @@ func (a *API) branding(q *req) (any, error) {
 		return nil, err
 	}
 	sum := sha256.Sum256(b)
-	return map[string]any{"name": set["siteName"], "logoUrl": "/branding/logo?v=" + hex.EncodeToString(sum[:8]), "hasCustomLogo": custom}, nil
+	// the sign-in page skips the phone field on sign-up when numbers are made up
+	generated, _ := set["signupGeneratedNumbers"].(bool)
+	return map[string]any{"name": set["siteName"], "logoUrl": "/branding/logo?v=" + hex.EncodeToString(sum[:8]), "hasCustomLogo": custom,
+		"generatedNumbers": generated}, nil
 }
 
 func (a *API) logo(w http.ResponseWriter, r *http.Request) {

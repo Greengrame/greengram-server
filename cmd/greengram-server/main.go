@@ -191,6 +191,7 @@ func run() error {
 	adm.Media = mediaSvc
 	adm.AccessChanged = a.AccessChanged
 	adm.Erased = a.AccountErased
+	adm.IdentityReset = a.IdentityReset
 	adm.AnswerAppeal = a.AnswerAppeal
 	adm.Moderator = a
 	adm.Extra = append(adm.Extra, func(ctx context.Context, out map[string]any) error {
