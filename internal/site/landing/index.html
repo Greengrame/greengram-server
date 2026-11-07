@@ -70,6 +70,9 @@
   {{- if .Contact}}
   <span>admin: {{if .ContactURL}}<a href="{{.ContactURL}}" rel="nofollow">{{.Contact}}</a>{{else}}{{.Contact}}{{end}}</span>
   {{- end}}
+  {{- if .Donate}}
+  <span class="donate">donate · <code>{{.Donate}}</code></span>
+  {{- end}}
 </div></footer>
 </body>
 </html>

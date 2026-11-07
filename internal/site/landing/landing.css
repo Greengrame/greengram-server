@@ -85,6 +85,7 @@ h2 { text-align: center; font-size: 22px; font-weight: 600; margin: 0 0 20px; }
 .why p { margin: 0; color: var(--dim); font-size: 14px; }
 
 footer { margin-top: 56px; border-top: 1px solid var(--line); color: var(--dim); font-size: 13px; }
+.donate code { user-select: all; overflow-wrap: anywhere; }
 footer .in { padding-block: 20px 32px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 24px; }
 
 @media (max-width: 640px) {

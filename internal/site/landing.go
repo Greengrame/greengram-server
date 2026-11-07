@@ -34,6 +34,7 @@ type Landing struct {
 	Name    string // the instance's name, settings siteName
 	Signup  bool   // registrationEnabled: show "create account"
 	Contact string // GREENGRAM_ADMIN_CONTACT; "" leaves it out
+	Donate  string // GREENGRAM_DONATE: a line like "Solana: <address>"; "" leaves it out
 }
 
 const robots = `User-agent: *
@@ -101,6 +102,9 @@ func (s *Site) landing(w http.ResponseWriter, r *http.Request) {
 		} else if a, err := mail.ParseAddress(c); err == nil && a.Address == c {
 			data["ContactURL"] = "mailto:" + c
 		}
+	}
+	if d := strings.TrimSpace(info.Donate); d != "" {
+		data["Donate"] = d
 	}
 	var b bytes.Buffer
 	if err := landingPage.Execute(&b, data); err != nil {
