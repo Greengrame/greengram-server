@@ -9,7 +9,7 @@ import { Avatar, Loading, Row, Rows } from '../components/ui.jsx';
 
 const tabs = [{ value: 'profile', label: 'Profile' }, { value: 'access', label: 'Access' }, { value: 'sessions', label: 'Devices' }, { value: 'crypto', label: 'Crypto' }, { value: 'memberships', label: 'Chats' }, { value: 'privacy', label: 'Privacy' }];
 const accessLabels = { active: 'Restore Access', frozen: 'Freeze Account', locked: 'Lock Account', suspended: 'Suspend Account', banned: 'Ban Account', deleted: 'Delete Account' };
-const accessDescriptions = { active: 'Restore sign-in and allow changes again.', frozen: 'Keep existing content readable, but prevent changes and purchases.', suspended: 'Temporarily hide this account and its message contents while preserving its data for restoration. All devices are signed out.', locked: 'Sign out all devices and block sign-in until unlocked.', banned: 'Sign out all devices and ban access until an administrator lifts the ban.', deleted: 'Anonymize this account and remove its profile photo and credentials. Its messages are redacted and uploaded media/files are removed from the server. Transaction/audit records remain. This cannot be undone.' };
+const accessDescriptions = { active: 'Restore sign-in and allow changes again.', frozen: 'Keep existing content readable, but prevent changes and purchases.', suspended: 'Temporarily hide this account and its message contents while preserving its data for restoration. All devices are signed out.', locked: 'Sign out all devices and block sign-in until unlocked.', banned: 'Sign out all devices and ban access until an administrator lifts the ban.', deleted: 'Sign out every device, remove the profile photos, name, username, phone and password, and leave every group and channel (owned ones pass to their longest-serving admin). Owned bots stop. Fragment names and numbers go back to the instance. Stars, wallet balances and collectible gifts move to the Deleted Accounts system account. Messages stay and show as Deleted Account. This cannot be undone.' };
 const sessionId = /^[a-f0-9]{64}$/;
 const pageSize = 8;
 
@@ -84,7 +84,22 @@ function Benefit({ icon: Icon, title, note, action, onAction }) {
     </div>;
 }
 
-function ProfileTab({ id, user, detail, onDetail, refresh }) {
+// the read-only identity lines on the Profile tab
+export function identityLines(user, detail) {
+    let lines = [['Phone', user.phoneNumber || detail.user?.phoneNumber || 'No phone number']];
+    for (let item of detail.fragment || []) lines.push([item.kind === 'number' ? 'Fragment number' : 'Fragment username', (item.displayTitle || item.title) + (item.listed ? ` · for sale, ${item.price} GRAM` : '')]);
+    if (detail.deletedAt) lines.push(['Deleted', `${date(detail.deletedAt)} · ${{ admin: 'by an administrator', self: 'by its owner', inactive: 'after inactivity' }[detail.deletionSource] || detail.deletionSource || ''}`]);
+    return lines;
+}
+
+function Identity({ id, user, detail, onClose }) {
+    return <div className="flex flex-col gap-2 rounded-lg px-3 py-3 ring ring-kumo-line">
+        <Rows>{identityLines(user, detail).map(([label, value], index) => <Row key={index} label={label}><span className="font-mono text-sm">{value}</span></Row>)}</Rows>
+        <div className="flex justify-end"><Button type="button" size="sm" variant="secondary" onClick={() => { onClose(); location.hash = 'circulation/user/' + id; }}>View holdings</Button></div>
+    </div>;
+}
+
+function ProfileTab({ id, user, detail, onDetail, refresh, onClose }) {
     let [values, setValues] = useState({ name: user.name || '', username: user.username || '', bio: user.bio || '', usernamePublic: user.usernamePublic !== false });
     let [error, setError] = useState('');
     let [busy, setBusy] = useState(false);
@@ -119,7 +134,8 @@ function ProfileTab({ id, user, detail, onDetail, refresh }) {
                 <span className="text-lg font-semibold tabular-nums text-kumo-default">{number(count)}</span>
             </div>)}
         </div>
-        <form className="flex flex-col gap-4" onSubmit={save} autoComplete="off" data-1p-ignore>
+        <Identity id={id} user={user} detail={detail} onClose={onClose} />
+        {accountState(user) === 'deleted' ? null : <form className="flex flex-col gap-4" onSubmit={save} autoComplete="off" data-1p-ignore>
             <Input label="Name" value={values.name} onChange={set('name')} maxLength={80} required autoComplete="off" passwordManagerIgnore className="w-full" />
             <Input label="Username" value={values.username} onChange={set('username')} maxLength={32} required autoComplete="off" passwordManagerIgnore className="w-full" />
             <InputArea label="Bio" value={values.bio} onChange={set('bio')} maxLength={user.isPremium ? 140 : 70} rows={3} autoComplete="off" data-1p-ignore className="w-full" />
@@ -139,7 +155,7 @@ function ProfileTab({ id, user, detail, onDetail, refresh }) {
             </div> : null}
             <Failure>{error}</Failure>
             <div className="flex justify-end"><Button type="submit" variant="primary" loading={busy}>Save Profile</Button></div>
-        </form>
+        </form>}
     </div>;
 }
 
@@ -372,7 +388,8 @@ function ChatsTab({ detail, section }) {
 function PrivacyTab({ detail }) {
     return <Rows>
         <Row label="Profile Photos">{number(detail.photoCount)}</Row>
-        <Row label="Inactive Account TTL">{number(detail.accountTtlDays)} days</Row>
+        <Row label="Delete if away for">{number(detail.accountTtlDays)} days</Row>
+        <Row label="Last seen">{date(detail.lastSeenAt)}</Row>
         {Object.entries(detail.privacy || {}).map(([key, value]) => <Row key={key} label={privacyLabel(key)}>
             {value.visibility || 'Default'}
             <small className="block text-xs text-kumo-subtle">{number(value.allowedPeople)} people allowed · {number(value.blockedPeople)} blocked · {number(value.allowedChats)} chats allowed · {number(value.blockedChats)} blocked</small>
@@ -441,7 +458,7 @@ export default function MemberDialog({ id, onClose }) {
                 </div>
                 <Tabs variant="underline" aria-label="Account management" tabs={tabs} value={tab} onValueChange={openTab} />
                 <section role="tabpanel" aria-label={tabs.find(item => item.value === tab)?.label}>
-                    {tab === 'profile' ? <ProfileTab key={revision} {...shared} onDetail={replaceDetail} /> : null}
+                    {tab === 'profile' ? <ProfileTab key={revision} {...shared} onDetail={replaceDetail} onClose={onClose} /> : null}
                     {tab === 'access' ? <AccessTab {...shared} accessState={accessState} setAccessState={setAccessState} onDetail={replaceDetail} /> : null}
                     {tab === 'sessions' ? <SessionsTab {...shared} confirmation={confirmation} setConfirmation={setConfirmation} onSessions={sessions => setDetail(current => ({ ...current, sessions }))} /> : null}
                     {tab === 'crypto' ? <CryptoTab id={id} wallet={wallet} setWallet={setWallet} section={section} request={cryptoRequest} /> : null}

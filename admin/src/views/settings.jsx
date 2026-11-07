@@ -30,11 +30,12 @@ export const settingSections = [
 ];
 
 const fields = settingSections.flatMap(section => section.fields);
+const switches = ['registrationEnabled', 'inactiveAccountDeletion'];
 
 // every key the server sent goes back; everything but the name and the switch is a number
 export function settingsData(settings, values) {
     let keys = new Set([...Object.keys(settings), ...fields.map(([key]) => key).filter(key => Object.hasOwn(values, key))]);
-    return Object.fromEntries([...keys].map(key => [key, key === 'siteName' ? String(values.siteName ?? '') : key === 'registrationEnabled' ? Boolean(values.registrationEnabled) : Number(values[key])]));
+    return Object.fromEntries([...keys].map(key => [key, key === 'siteName' ? String(values.siteName ?? '') : switches.includes(key) ? Boolean(values[key]) : Number(values[key])]));
 }
 
 export function settingsErrors(values) {
@@ -162,6 +163,13 @@ export default function Settings() {
                             <span className="block text-xs text-kumo-subtle">Existing members can still sign in when registration is closed.</span>
                         </div>
                         <Switch aria-label="Allow new registrations" checked={Boolean(values.registrationEnabled)} onCheckedChange={checked => change('registrationEnabled', checked)} />
+                    </div>
+                    <div className="flex items-start justify-between gap-6 border-t border-kumo-hairline pt-4">
+                        <div className="min-w-0">
+                            <span className="block text-sm font-medium text-kumo-default">Delete inactive accounts</span>
+                            <span className="block text-xs text-kumo-subtle">Delete accounts away longer than their own "If away for" period (12 months unless they chose otherwise). Administrators and locked, banned or suspended accounts are never deleted this way.</span>
+                        </div>
+                        <Switch aria-label="Delete inactive accounts" checked={values.inactiveAccountDeletion !== false} onCheckedChange={checked => change('inactiveAccountDeletion', checked)} />
                     </div>
                 </div>
             </Panel>

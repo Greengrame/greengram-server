@@ -71,7 +71,8 @@ export function useLive(path, { interval = 0 } = {}) {
 
 export function useHashView(views, fallback) {
     let read = () => {
-        let value = location.hash.slice(1);
+        // a view may take more after a slash: #circulation/user/42
+        let value = location.hash.slice(1).split('/')[0];
         return Object.hasOwn(views, value) ? value : fallback;
     };
     let [view, setView] = useState(read);

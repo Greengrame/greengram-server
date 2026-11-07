@@ -281,6 +281,9 @@ func (a *API) userView(viewer int64, u account.User, book map[int64]string, au *
 	}
 	t.Premium = u.Premium(time.Now())
 	a.setUserPhoto(t, u, au)
+	if u.State == "deleted" {
+		t.Status, t.Premium = nil, false
+	}
 	if b, ok := botList[u.ID]; ok {
 		botFlags(viewer, t, b)
 	}
