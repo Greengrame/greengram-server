@@ -102,7 +102,7 @@ function Gifts({ onOpenUser }) {
                     <Cell>{number(gift.converted)}</Cell>
                     <Cell>{number(gift.upgraded)}</Cell>
                     <Cell>{stockText(gift)}</Cell>
-                    <Cell>{gift.holders ? <Button size="sm" variant="ghost" onClick={() => setHolders(gift)}>{number(gift.holders)}</Button> : '0'}</Cell>
+                    <Cell>{gift.holders ? <Button size="sm" variant="ghost" className="-ml-2.5 tabular-nums underline" aria-label={`${number(gift.holders)} holders of ${gift.title}`} onClick={() => setHolders(gift)}>{number(gift.holders)}</Button> : '0'}</Cell>
                 </Table.Row>)}
             </Table.Body>
         </Table> : <EmptyState icon={GiftIcon} title="No gifts in the catalog" />}

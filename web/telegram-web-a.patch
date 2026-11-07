@@ -140,7 +140,7 @@ index ac9e529b..31456e93 100644
  
  export type ApiBotApp = {
 diff --git a/src/assets/localization/fallback.strings b/src/assets/localization/fallback.strings
-index 085994f..00d664a 100644
+index 085994f..47a5351 100644
 --- a/src/assets/localization/fallback.strings
 +++ b/src/assets/localization/fallback.strings
 @@ -712,7 +712,7 @@
@@ -165,7 +165,7 @@ index 085994f..00d664a 100644
 +"GreengramDeleteIfAwayDescription" = "If you don't sign in at least once within this period, your account will be deleted, along with your profile, contacts and everything you own. Your messages stay in other people's chats as Deleted Account.";
 +"GreengramDeleteMyAccountNow" = "Delete my account now";
 +"GreengramDeleteAccountTitle" = "Delete your account?";
-+"GreengramDeleteAccountText" = "This signs you out everywhere and cannot be undone. Your name, username, phone number and photos go. You leave every group and channel; the ones you own pass to an admin. Your Stars, wallet balance, collectible gifts, usernames and numbers are not returned to you. Your messages stay in other people's chats as Deleted Account.";
++"GreengramDeleteAccountText" = "This signs you out everywhere and cannot be undone. Your name, username, phone number and photos go. You leave every group and channel, and the ones you own pass to an admin. Your Stars, wallet balance, collectible gifts, usernames and numbers are not returned to you. Your messages stay in other people's chats as Deleted Account.";
 +"GreengramDeleteAccountPassword" = "Your password";
 +"GreengramDeleteAccountConfirm" = "Delete account";
 diff --git a/src/components/App.tsx b/src/components/App.tsx
@@ -2892,7 +2892,7 @@ index 9df8439d..043e8934 100644
    connect(port: number, ip: string, isTestServer = false, isPremium = false) {
 diff --git a/src/lib/gramjs/greengram.ts b/src/lib/gramjs/greengram.ts
 new file mode 100644
-index 0000000..e19d3e9
+index 0000000..bd99367
 --- /dev/null
 +++ b/src/lib/gramjs/greengram.ts
 @@ -0,0 +1,126 @@
@@ -3002,8 +3002,8 @@ index 0000000..e19d3e9
 +export async function greengramDeletionInfo(): Promise<{ hasPassword: boolean } | undefined> {
 +  const slot = accountSlot();
 +  const response = await fetch(`${greengramOrigin()}/api/account/deletion`, {
-+    headers: slot ? { X-Greengram-Account: slot } : {},
-+    credentials: same-origin,
++    headers: slot ? { 'X-Greengram-Account': slot } : {},
++    credentials: 'same-origin',
 +  });
 +  if (!response.ok) return undefined;
 +  const data = await response.json() as { hasPassword: boolean };
@@ -3013,10 +3013,10 @@ index 0000000..e19d3e9
 +export async function confirmGreengramDeletion(password: string): Promise<string | undefined> {
 +  const slot = accountSlot();
 +  const response = await fetch(`${greengramOrigin()}/api/account/deletion`, {
-+    method: POST,
-+    headers: { Content-Type: application/json, ...(slot && { X-Greengram-Account: slot }) },
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json', ...(slot && { 'X-Greengram-Account': slot }) },
 +    body: JSON.stringify({ password }),
-+    credentials: same-origin,
++    credentials: 'same-origin',
 +  });
 +  if (response.ok) return undefined;
 +  const data = await response.json().catch(() => ({})) as { error?: string };
@@ -3355,17 +3355,15 @@ index 859c1000..56107f5d 100644
    border-radius: var(--custom-emoji-border-radius) !important;
  }
 diff --git a/src/api/gramjs/methods/account.ts b/src/api/gramjs/methods/account.ts
-index f7c12b8..e0a8140 100644
+index f7c12b8..772120b 100644
 --- a/src/api/gramjs/methods/account.ts
 +++ b/src/api/gramjs/methods/account.ts
-@@ -13,6 +13,7 @@ import {
-   buildInputReportReason,
-   DEFAULT_PRIMITIVES,
- } from '../gramjsBuilders';
+@@ -1,4 +1,5 @@
+ import { Api as GramJs } from '../../../lib/gramjs';
 +import { confirmGreengramDeletion, greengramDeletionInfo } from '../../../lib/gramjs/greengram';
- import { invokeRequest } from './client';
  
- export async function reportPeer({
+ import type {
+   ApiAudio, ApiPeer, ApiPhoto, ApiProfileTab, ApiReportReason,
 @@ -124,6 +125,27 @@ export async function fetchAccountTTL() {
    return buildApiAccountDays(result);
  }
@@ -3386,7 +3384,7 @@ index f7c12b8..e0a8140 100644
 +    });
 +    return result ? { ok: true as const } : { error: 'The account could not be deleted.' };
 +  } catch (err: unknown) {
-+    const message = (err as { errorMessage?: string; message?: string });
++    const message = err as { errorMessage?: string; message?: string };
 +    return { error: message.errorMessage || message.message || 'The account could not be deleted.' };
 +  }
 +}
@@ -3396,25 +3394,25 @@ index f7c12b8..e0a8140 100644
      ttl: buildApiAccountDaysTTL(days),
 diff --git a/src/components/left/settings/DeleteMyAccountModal.tsx b/src/components/left/settings/DeleteMyAccountModal.tsx
 new file mode 100644
-index 0000000..8d7141e
+index 0000000..e72bf24
 --- /dev/null
 +++ b/src/components/left/settings/DeleteMyAccountModal.tsx
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,94 @@
 +// Greengram: delete the account from Settings. The password is checked by
 +// the instance over HTTPS (it never goes over MTProto), then
 +// account.deleteAccount runs and the app signs out.
 +
-+import { memo, useEffect, useState } from ../../../lib/teact/teact;
-+import { getActions } from ../../../global;
++import { memo, useEffect, useState } from '../../../lib/teact/teact';
++import { getActions } from '../../../global';
 +
-+import { callApi } from ../../../api/gramjs;
++import { callApi } from '../../../api/gramjs';
 +
-+import useLang from ../../../hooks/useLang;
-+import useLastCallback from ../../../hooks/useLastCallback;
++import useLang from '../../../hooks/useLang';
++import useLastCallback from '../../../hooks/useLastCallback';
 +
-+import PasswordForm from ../../common/PasswordForm;
-+import PasswordMonkey from ../../common/PasswordMonkey;
-+import ConfirmDialog from ../../ui/ConfirmDialog;
++import PasswordForm from '../../common/PasswordForm';
++import PasswordMonkey from '../../common/PasswordMonkey';
++import ConfirmDialog from '../../ui/ConfirmDialog';
 +
 +type OwnProps = {
 +  isOpen: boolean;
@@ -3426,34 +3424,38 @@ index 0000000..8d7141e
 +  const lang = useLang();
 +
 +  const [hasPassword, setHasPassword] = useState(true);
-+  const [password, setPassword] = useState(\x27\x27);
++  const [password, setPassword] = useState('');
 +  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 +  const [error, setError] = useState<string | undefined>();
 +  const [isLoading, setIsLoading] = useState(false);
 +
 +  useEffect(() => {
 +    if (!isOpen) return;
-+    callApi(\x27fetchGreengramDeletion\x27).then((info) => {
++    callApi('fetchGreengramDeletion').then((info) => {
 +      if (info) setHasPassword(info.hasPassword);
 +    });
 +  }, [isOpen]);
 +
 +  const handleClose = useLastCallback(() => {
 +    if (isLoading) return;
-+    setPassword(\x27\x27);
++    setPassword('');
 +    setError(undefined);
 +    setIsPasswordVisible(false);
 +    onClose();
++  });
++
++  const handleClearError = useLastCallback(() => {
++    setError(undefined);
 +  });
 +
 +  const handleConfirm = useLastCallback(async () => {
 +    if (isLoading || (hasPassword && !password)) return;
 +    setIsLoading(true);
 +    setError(undefined);
-+    const result = await callApi(\x27deleteGreengramAccount\x27, { password, reason: \x27Deleted from Settings\x27 });
++    const result = await callApi('deleteGreengramAccount', { password, reason: 'Deleted from Settings' });
 +    if (!result || result.error) {
 +      setIsLoading(false);
-+      setError(result?.error || lang(\x27ErrorUnexpected\x27));
++      setError(result?.error || lang('ErrorUnexpected'));
 +      return;
 +    }
 +    signOut({ forceInitApi: true });
@@ -3462,25 +3464,25 @@ index 0000000..8d7141e
 +  return (
 +    <ConfirmDialog
 +      isOpen={isOpen}
-+      title={lang(\x27GreengramDeleteAccountTitle\x27)}
-+      confirmLabel={lang(\x27GreengramDeleteAccountConfirm\x27)}
++      title={lang('GreengramDeleteAccountTitle')}
++      confirmLabel={lang('GreengramDeleteAccountConfirm')}
 +      confirmHandler={handleConfirm}
 +      confirmIsDestructive
 +      isConfirmDisabled={isLoading || (hasPassword && !password)}
 +      onClose={handleClose}
 +    >
-+      <p>{lang(\x27GreengramDeleteAccountText\x27)}</p>
++      <p>{lang('GreengramDeleteAccountText')}</p>
 +      {hasPassword ? (
 +        <>
 +          <PasswordMonkey isPasswordVisible={isPasswordVisible} />
 +          <PasswordForm
 +            error={error}
-+            placeholder={lang(\x27GreengramDeleteAccountPassword\x27)}
++            placeholder={lang('GreengramDeleteAccountPassword')}
 +            isLoading={isLoading}
 +            isPasswordVisible={isPasswordVisible}
 +            shouldDisablePasswordManager
 +            onChangePasswordVisibility={setIsPasswordVisible}
-+            onClearError={() => setError(undefined)}
++            onClearError={handleClearError}
 +            onInputChange={setPassword}
 +          />
 +        </>

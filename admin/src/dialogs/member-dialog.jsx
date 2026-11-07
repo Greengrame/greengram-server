@@ -260,10 +260,13 @@ function PasswordReset({ id, user, onDetail, refresh }) {
 function AccessTab({ id, user, me, detail, section, accessState, setAccessState, onDetail, refresh }) {
     let dialogs = useDialogs();
     let ledger = section('ledger', detail.ledger || []);
+    let gone = accountState(user) === 'deleted';
     return <div className="flex flex-col gap-4">
-        <Benefit icon={CrownIcon} title={user.isPremium ? 'Premium member' : 'Free plan'} note={user.isPremium ? premiumExpiry(user, 'Expires ') : 'Local Premium access'} action="Manage" onAction={() => dialogs.open('premium', { ids: [id] })} />
-        <Benefit icon={StarIcon} title={`${number(user.stars)} Stars`} note="Create a traceable Stars transaction" action="Transact" onAction={() => dialogs.open('stars', { recipientId: id })} />
-        {user.id !== me.id ? <div><Button size="sm" variant="secondary" onClick={() => dialogs.open('role', { id })}>{user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}</Button></div> : null}
+        {gone ? null : <>
+            <Benefit icon={CrownIcon} title={user.isPremium ? 'Premium member' : 'Free plan'} note={user.isPremium ? premiumExpiry(user, 'Expires ') : 'Local Premium access'} action="Manage" onAction={() => dialogs.open('premium', { ids: [id] })} />
+            <Benefit icon={StarIcon} title={`${number(user.stars)} Stars`} note="Create a traceable Stars transaction" action="Transact" onAction={() => dialogs.open('stars', { recipientId: id })} />
+            {user.id !== me.id ? <div><Button size="sm" variant="secondary" onClick={() => dialogs.open('role', { id })}>{user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}</Button></div> : null}
+        </>}
         <AccountAccess id={id} user={user} me={me} pending={accessState} setPending={setAccessState} onDetail={onDetail} refresh={refresh} />
         {user.role !== 'admin' && user.id !== me.id && accountState(user) !== 'deleted' ? <PasswordReset id={id} user={user} onDetail={onDetail} refresh={refresh} /> : null}
         <Section view={ledger.view} setPage={ledger.setPage}>
