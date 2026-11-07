@@ -1,0 +1,402 @@
+{
+  "name": "botfather",
+  "origin": "https://webappinternal.telegram.org",
+  "assets": {
+    "index.html": {
+      "url": "https://webappinternal.telegram.org/botfather",
+      "sha256": "3d8bedd2fec2060989057a720291cac6415ff1e28b43543ba0864caafd994f98",
+      "size": 3214
+    },
+    "js/jquery.ui.touch-punch.js": {
+      "url": "https://webappinternal.telegram.org/js/jquery.ui.touch-punch.js?1",
+      "sha256": "5c9577d9fd713f743a17cc861fbdadb3ec472795c8a48e2ca6fec273d8da1dcd",
+      "size": 5949
+    },
+    "js/jquery-ex.js": {
+      "url": "https://webappinternal.telegram.org/js/jquery-ex.js?22",
+      "sha256": "6e8ff691b2dae9181cdb4dce18bb519606e6279c72ef37c70a3239d7567ab034",
+      "size": 65498
+    },
+    "js/telegram-web-app.js": {
+      "url": "https://webappinternal.telegram.org/js/telegram-web-app.js?64",
+      "sha256": "124bdff7ba3fe86c8ba5143467afec21e020405e74abdb92cfdda6c0ee3b5908",
+      "size": 119731
+    },
+    "js/jquery-ui.min.js": {
+      "url": "https://webappinternal.telegram.org/js/jquery-ui.min.js?1",
+      "sha256": "5225dec09dab116b5790bf3242694766254b6f844cf78e89ebc750f675bdcb46",
+      "size": 98751
+    },
+    "js/codemirror-cloudjs.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror-cloudjs.js?1",
+      "sha256": "a415a71134f762c4822d0108c1d86ef19b4b9e4a0d9f5932f7cc874015bc6f43",
+      "size": 6025
+    },
+    "js/webapp-common.js": {
+      "url": "https://webappinternal.telegram.org/js/webapp-common.js?5",
+      "sha256": "3446c6a8a708384c3acd7142e4bcbd11bf9efe3d2929b3a0609d2bf82232ed03",
+      "size": 10088
+    },
+    "js/codemirror-guarded-region.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror-guarded-region.js?1",
+      "sha256": "7447c63b42f0766aac5b6c8643a40111dd14872aea2beb4747728bdaca1c00ff",
+      "size": 8453
+    },
+    "js/json5.min.js": {
+      "url": "https://webappinternal.telegram.org/js/json5.min.js?1",
+      "sha256": "4bb96d9d53f380ac801819411b8c10868ac9a984de863e56402ac00c2289b9f1",
+      "size": 31631
+    },
+    "js/botfather.js": {
+      "url": "https://webappinternal.telegram.org/js/botfather.js?69",
+      "sha256": "6330eab130cad12a07d4ac7549f8792053253703b29af9489818af7142ce2e0c",
+      "size": 97195
+    },
+    "css/font-roboto-mono.css": {
+      "url": "https://webappinternal.telegram.org/css/font-roboto-mono.css?1",
+      "sha256": "c17a5cd4bc3800097be385419e4e20c3053e5c582ce5e4c78104f3eb25659a48",
+      "size": 4327
+    },
+    "css/bootstrap.min.css": {
+      "url": "https://webappinternal.telegram.org/css/bootstrap.min.css?3",
+      "sha256": "f1d083ffaa644c708f11db29707aa57c19246e6d32643b03fee3f82c17b224b3",
+      "size": 42523
+    },
+    "css/bootstrap-extra.css": {
+      "url": "https://webappinternal.telegram.org/css/bootstrap-extra.css?2",
+      "sha256": "6342d16a93416b5e826f6d0e0e930ef033efb682851ae46270f3c4f5b4a1c194",
+      "size": 71240
+    },
+    "css/codemirror-show-hint.min.css": {
+      "url": "https://webappinternal.telegram.org/css/codemirror-show-hint.min.css?1",
+      "sha256": "f0ea2e12eabd0d0f410623021511bbf9d0e5481c3431e29e380aa1ef3e88659a",
+      "size": 528
+    },
+    "css/codemirror.css": {
+      "url": "https://webappinternal.telegram.org/css/codemirror.css?1",
+      "sha256": "8ff5b200af4250ae191b786f68692000a19d51da8c02af005e63a63dec050afa",
+      "size": 9939
+    },
+    "css/jquery-ui.min.css": {
+      "url": "https://webappinternal.telegram.org/css/jquery-ui.min.css?1",
+      "sha256": "48918b454f7ed7b7a465ec45eb02da84356b21cae6ee2cdf20257a2d4df697d1",
+      "size": 1975
+    },
+    "css/botfather.css": {
+      "url": "https://webappinternal.telegram.org/css/botfather.css?55",
+      "sha256": "58e5db7ea8a4e04b8d7b7ceb25d0bb42bfea8a74e322ce5654ca1f155ef0de4a",
+      "size": 155535
+    },
+    "fonts/glyphicons-halflings-regular.ttf": {
+      "url": "https://webappinternal.telegram.org/fonts/glyphicons-halflings-regular.ttf",
+      "sha256": "bd18efd3efd70fec8ad09611a20cdbf99440b2c1d40085c29be036f891d65358",
+      "size": 41280
+    },
+    "fonts/ProductSansBold.ttf": {
+      "url": "https://webappinternal.telegram.org/fonts/ProductSansBold.ttf",
+      "sha256": "8dbeee804c249634fd860cae932f54afe759de8c17c136995fcae57c24348cf9",
+      "size": 55548
+    },
+    "fonts/ProductSansRegular.ttf": {
+      "url": "https://webappinternal.telegram.org/fonts/ProductSansRegular.ttf",
+      "sha256": "b34cbb71d75b84eb4925f51e050249f65fb3e3550133aba0a4c161c6820aec82",
+      "size": 41116
+    },
+    "fonts/glyphicons-halflings-regular.woff": {
+      "url": "https://webappinternal.telegram.org/fonts/glyphicons-halflings-regular.woff",
+      "sha256": "fc969dc1c6ff531abcf368089dcbaf5775133b0626ff56b52301a059fc0f9e1e",
+      "size": 23320
+    },
+    "img/favicon-32x32.png": {
+      "url": "https://webappinternal.telegram.org/img/favicon-32x32.png",
+      "sha256": "7f3e38478d53875c1f35d67fc035067274bacf9df8285889ad04fb143dfdddd8",
+      "size": 1043
+    },
+    "img/apple-touch-icon.png": {
+      "url": "https://webappinternal.telegram.org/img/apple-touch-icon.png",
+      "sha256": "a51d667d4262047c23e3a2a8aac3b46dc8a58c686cc013f2354011c07bf22cf3",
+      "size": 5644
+    },
+    "img/favicon.ico": {
+      "url": "https://webappinternal.telegram.org/img/favicon.ico",
+      "sha256": "4ff54bc38c267dc3a8c95f6ed4590336baaec70433ef15d027ddca608c391e78",
+      "size": 15086
+    },
+    "img/favicon-16x16.png": {
+      "url": "https://webappinternal.telegram.org/img/favicon-16x16.png",
+      "sha256": "4f9736ef74091e805bee2e9b6d06a03ab2612be41fad9a964a5bc97721db5adb",
+      "size": 535
+    },
+    "img/website_icon.svg": {
+      "url": "https://webappinternal.telegram.org/img/website_icon.svg?4",
+      "sha256": "0019255c610cb0843c524d7995905fa5201651fcc393846bee8414f0610097f5",
+      "size": 1896
+    },
+    "js/codemirror/matchbrackets.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/matchbrackets.js?1",
+      "sha256": "8bb6887c663c287068ac98d11d5faf962ebcc9dd5de0d8e436aceb8f54c9c8a1",
+      "size": 5349
+    },
+    "js/codemirror/closebrackets.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/closebrackets.js?1",
+      "sha256": "220e0b0baf74edabdfb252c3b3a4ac2ba22998c7afc7d4acfbeca410797af21f",
+      "size": 7210
+    },
+    "js/codemirror/javascript.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/javascript.js?1",
+      "sha256": "d9bab3243eac93b5f3a5ca287ca185d358bf7d91701c7bb81a20c55d522eecbb",
+      "size": 28078
+    },
+    "js/codemirror/comment.min.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/comment.min.js?1",
+      "sha256": "5759e7847cc0dca506089c4df923c06a0cdac49670f0a1dcc83905d097751394",
+      "size": 4046
+    },
+    "js/codemirror/show-hint.min.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/show-hint.min.js?1",
+      "sha256": "463814bdf21e4985890473c4424f69eb150e10d0817deb6e7cdad4ab379fd352",
+      "size": 10581
+    },
+    "js/codemirror/runmode.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/runmode.js?1",
+      "sha256": "f6f4993f6f5684410d6311d5c4c0924d228502c1cc74857ec599f0b573f3eacd",
+      "size": 2499
+    },
+    "js/codemirror/placeholder.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/placeholder.js?1",
+      "sha256": "44619626e2301fc16ebade252564e2c064113483e02f2fc8d8d262aed2485b9c",
+      "size": 2831
+    },
+    "js/codemirror/codemirror.js": {
+      "url": "https://webappinternal.telegram.org/js/codemirror/codemirror.js?1",
+      "sha256": "e8f2fb7c54e76163a7506c92db7e87800c3595f44ecbd62ed10856289a4b6a3d",
+      "size": 353079
+    },
+    "fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhPq3-cXbKDO1w.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhPq3-cXbKDO1w.woff2",
+      "sha256": "6f1e779fee122555935f377afc3688430e8840a220f39616891006905e49f9cd",
+      "size": 18584
+    },
+    "fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3OWWpCBC10HFw.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3OWWpCBC10HFw.woff2",
+      "sha256": "b983965f0899ebc79a826adc2a527fc8ffe81aa204dcdca1a355fffdb0b3a6c9",
+      "size": 24356
+    },
+    "fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3CWWpCBC10HFw.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3CWWpCBC10HFw.woff2",
+      "sha256": "9d5fe2eab066bd46f33d796601e66fe447518ded4ac5ee195f3991a38c08741d",
+      "size": 38556
+    },
+    "fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhFq3-cXbKDO1w.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhFq3-cXbKDO1w.woff2",
+      "sha256": "2cb74c78294bf69bb4c40e56d703014eecb0776df9a23418be836392fc7fdf89",
+      "size": 22868
+    },
+    "fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2",
+      "sha256": "30ad1ddfda39454ba31e2e5eeffba0669714c736b271db69f419168a544bccdd",
+      "size": 35892
+    },
+    "fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm32WWpCBC10.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm32WWpCBC10.woff2",
+      "sha256": "52cf6d1b27b1fd0ee92ac6fb753f046fcb0a7e9bf60b1c477744db09e2c48fc9",
+      "size": 35240
+    },
+    "fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm36WWpCBC10HFw.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm36WWpCBC10HFw.woff2",
+      "sha256": "97795e79d529f0e36f25945bffe10b8d43315fed636b02c3a1377a1d9022c9f2",
+      "size": 14872
+    },
+    "fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhIq3-cXbKDO1w.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhIq3-cXbKDO1w.woff2",
+      "sha256": "23a1a29784942542956830f32090ed8fee9c86f27ff9244e06445b2269dff4df",
+      "size": 14048
+    },
+    "fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhEq3-cXbKDO1w.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhEq3-cXbKDO1w.woff2",
+      "sha256": "6f1e6273e1ac677732b6d7dcd785081b9d56b51411c44ab67364d0757b84ae6b",
+      "size": 10276
+    },
+    "fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhLq3-cXbKD.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x5DF4xlVMF-BfR8bXMIjhLq3-cXbKD.woff2",
+      "sha256": "2ed6ac9efae6d21f51b2946176a0eef79a4043d643f9ac976e66d7fc4d57803a",
+      "size": 32752
+    },
+    "fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3KWWpCBC10HFw.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3KWWpCBC10HFw.woff2",
+      "sha256": "9699b526e1d7a2e669d41c8fa59077b6081af1a81efbad7da93809849b58ccfe",
+      "size": 10864
+    },
+    "fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3mWWpCBC10HFw.woff2": {
+      "url": "https://webappinternal.telegram.org/fonts/Roboto-mono/L0x7DF4xlVMF-BfR8bXMIjhOm3mWWpCBC10HFw.woff2",
+      "sha256": "d0f15f18962953a87cfc8e52beffde472e65aa0827722c7b19f6da7d437d8ecb",
+      "size": 20544
+    },
+    "_external/telegram.org/js/jquery.min.js": {
+      "url": "https://telegram.org/js/jquery.min.js?1",
+      "sha256": "540bc6dec1dd4b92ea4d3fb903f69eabf6d919afd48f4e312b163c28cff0f441",
+      "size": 95786
+    },
+    "_external/telegram.org/js/bootstrap.min.js": {
+      "url": "https://telegram.org/js/bootstrap.min.js",
+      "sha256": "b5e930df6a2976d5df996e18b347e091756699ea32716dc53d0e1c0fd814c526",
+      "size": 32013
+    },
+    "_external/telegram.org/js/main-aj.js": {
+      "url": "https://telegram.org/js/main-aj.js?76",
+      "sha256": "230c2cf39277831fdba567e85231c4213809eed6bd5327f3b734d35c1d13c682",
+      "size": 39685
+    },
+    "_external/telegram.org/css/bootstrap.min.css": {
+      "url": "https://telegram.org/css/bootstrap.min.css?3",
+      "sha256": "f1d083ffaa644c708f11db29707aa57c19246e6d32643b03fee3f82c17b224b3",
+      "size": 42523
+    },
+    "_external/telegram.org/css/bootstrap-extra.css": {
+      "url": "https://telegram.org/css/bootstrap-extra.css?2",
+      "sha256": "6342d16a93416b5e826f6d0e0e930ef033efb682851ae46270f3c4f5b4a1c194",
+      "size": 71240
+    },
+    "_external/telegram.org/css/font-roboto.css": {
+      "url": "https://telegram.org/css/font-roboto.css?1",
+      "sha256": "84b97b3fa8847b64c6d3833561e4b3146530577171e85ad226578a087db70974",
+      "size": 6166
+    },
+    "_external/telegram.org/fonts/glyphicons-halflings-regular.ttf": {
+      "url": "https://telegram.org/fonts/glyphicons-halflings-regular.ttf",
+      "sha256": "bd18efd3efd70fec8ad09611a20cdbf99440b2c1d40085c29be036f891d65358",
+      "size": 41280
+    },
+    "_external/telegram.org/fonts/glyphicons-halflings-regular.woff": {
+      "url": "https://telegram.org/fonts/glyphicons-halflings-regular.woff",
+      "sha256": "fc969dc1c6ff531abcf368089dcbaf5775133b0626ff56b52301a059fc0f9e1e",
+      "size": 23320
+    },
+    "_external/telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu7mxKKTU1Kvnz.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu7mxKKTU1Kvnz.woff2",
+      "sha256": "1df1ae79b14180fb1e9284310583ca4c17a861328a726b82068e0ab3ba586458",
+      "size": 748
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fChc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fChc4AMP6lbBP.woff2",
+      "sha256": "9cfe0546be6c8e0e13beeae9b8814f1e7bf0ff31fe4d286bf9ea12239a0abbd9",
+      "size": 7676
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fCBc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fCBc4AMP6lbBP.woff2",
+      "sha256": "a269d3d076c42e10f61629e0bd7048d770cbbafcf04b3ead84c39a5ba3bd2b60",
+      "size": 768
+    },
+    "_external/telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu7WxKKTU1Kvnz.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu7WxKKTU1Kvnz.woff2",
+      "sha256": "4f393c516f720fc9745e48f9e2662ba069eb70e43bc95fe327225d47d5c89fef",
+      "size": 3496
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fABc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fABc4AMP6lbBP.woff2",
+      "sha256": "3e70e149a35f394bb78ef7842de11a06359fed7828f30331594a28d196c54012",
+      "size": 6632
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2",
+      "sha256": "0f53e8b0a717ca4ce313eec62b90d41db62c2f4946259a65c93bf8e84c5b0c44",
+      "size": 11040
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfABc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfABc4AMP6lbBP.woff2",
+      "sha256": "2f662599cf4323a18b4f7da381a998a8873c0277fff2d866336f7ee943a102d6",
+      "size": 6620
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfCRc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfCRc4AMP6lbBP.woff2",
+      "sha256": "a05e513790b1979b52b2e4f8d6bbb9df34d3bcb935c15d6e0c12f8814fecad4a",
+      "size": 10256
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fCRc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fCRc4AMP6lbBP.woff2",
+      "sha256": "514a8093c90624700cea152953305ca826b5dc9f0410945658082d1758aa9dfc",
+      "size": 10352
+    },
+    "_external/telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu4WxKKTU1Kvnz.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu4WxKKTU1Kvnz.woff2",
+      "sha256": "3c8b5949070cb8420d2deefabd38557414d4112d3dc1bda58c3fd738efe984f2",
+      "size": 4864
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fBxc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fBxc4AMP6lbBP.woff2",
+      "sha256": "edad7f7e15729b7deddee25e34499c91a320ab4fbd1e60dd0420693c0d333947",
+      "size": 4796
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfChc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfChc4AMP6lbBP.woff2",
+      "sha256": "248ec746242539f7467873663d3a50ffe3c47324d07c1d5dea43bfc60ca14b22",
+      "size": 7676
+    },
+    "_external/telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu72xKKTU1Kvnz.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu72xKKTU1Kvnz.woff2",
+      "sha256": "83572c3ab2cc39e33fb02c9050652e82eb00351564f8fa1581b586372934a754",
+      "size": 10352
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfCxc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfCxc4AMP6lbBP.woff2",
+      "sha256": "47fc12e7b150cb636b83cabc6695e8e55ffb911346613ef75d8014a974582712",
+      "size": 3468
+    },
+    "_external/telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu5mxKKTU1Kvnz.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu5mxKKTU1Kvnz.woff2",
+      "sha256": "41b5c3b25f4258190937deb900fa57a6db6d450ce7dd2af2259af760119a1c41",
+      "size": 6460
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fBBc4AMP6lQ.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fBBc4AMP6lQ.woff2",
+      "sha256": "bce2f309470952b7affa62ff4d91b454334c68cefa541429b502904d20696875",
+      "size": 11072
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfBxc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfBxc4AMP6lbBP.woff2",
+      "sha256": "05347b4e55e70240e1136cf632220ec6662c94f12757835bdcf8d578fae77e88",
+      "size": 4796
+    },
+    "_external/telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu7GxKKTU1Kvnz.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu7GxKKTU1Kvnz.woff2",
+      "sha256": "582ca1c5738fa2697949cc4a495418e42df462e2bc3fc62bdae126bf159b6af5",
+      "size": 7736
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fCxc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmEU9fCxc4AMP6lbBP.woff2",
+      "sha256": "dab91182a5ab309ff749748ef255493eb4336822c3dc2d72ae47db6ed6764e1c",
+      "size": 3472
+    },
+    "_external/telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2",
+      "sha256": "796de064b8d80eba7ccacb8ba67d77fdbcdf4b385c844645d452c24537b3108f",
+      "size": 11028
+    },
+    "_external/telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfCBc4AMP6lbBP.woff2": {
+      "url": "https://telegram.org/fonts/Roboto/KFOlCnqEu92Fr1MmWUlfCBc4AMP6lbBP.woff2",
+      "sha256": "c5214e0140eedfa85f9d274d1a1fbef05fb6ad22eee49dd40876fedce3e70e59",
+      "size": 756
+    },
+    "img/botfather-avatar.png": {
+      "url": "https://webappinternal.telegram.org/img/botfather-avatar.png",
+      "sha256": "8d77358a081f70024abd4f7d178e2361af4f92b00ef0d24294017def3d67c430",
+      "size": 148615
+    },
+    "img/no-result.png": {
+      "url": "https://webappinternal.telegram.org/img/no-result.png",
+      "sha256": "b05df8ebd85f6f0c161ad4237a901901811cf555e5851565aa078ca454f5cd1c",
+      "size": 8528
+    },
+    "img/botfather-upload-avatar.svg": {
+      "url": "https://webappinternal.telegram.org/img/botfather-upload-avatar.svg",
+      "sha256": "c60bf1114b8e51ce2daa870267a90c4e382eef40a363c768aaf88320ce41b8c7",
+      "size": 1494
+    },
+    "_external/telegram.org/resources/web-app-icon-sample.svg": {
+      "url": "https://telegram.org/resources/web-app-icon-sample.svg",
+      "sha256": "d4736b33331e1b9a7429d4a5d0edccdcf9905c1af168c95a5df7a4b9541abf4b",
+      "size": 1028
+    }
+  },
+  "missing": []
+}

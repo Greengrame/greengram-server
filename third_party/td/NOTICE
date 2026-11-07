@@ -1,0 +1,8 @@
+td (github.com/iamxvbaba/td, a fork of github.com/gotd/td)
+MIT License, see LICENSE in this folder.
+
+Used as a dependency. Files copied from it and changed by Greengram:
+
+internal/edge/dh/server.go, proto.go, rng.go
+    from exchange/server_flow.go, exchange/proto.go, exchange/generator.go:
+    the DC check in p_q_inner_data takes a predicate.

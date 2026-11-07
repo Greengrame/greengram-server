@@ -1,0 +1,4013 @@
+{
+  "phoneCodes": [
+    {
+      "iso2": "AF",
+      "defaultName": "Afghanistan",
+      "name": "Afghanistan",
+      "countryCode": "93",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AL",
+      "defaultName": "Albania",
+      "name": "Albania",
+      "countryCode": "355",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "DZ",
+      "defaultName": "Algeria",
+      "name": "Algeria",
+      "countryCode": "213",
+      "patterns": [
+        "XXX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "AS",
+      "defaultName": "American Samoa",
+      "name": "American Samoa",
+      "countryCode": "1684",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AD",
+      "defaultName": "Andorra",
+      "name": "Andorra",
+      "countryCode": "376",
+      "patterns": [
+        "XX XX XX"
+      ]
+    },
+    {
+      "iso2": "AO",
+      "defaultName": "Angola",
+      "name": "Angola",
+      "countryCode": "244",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AI",
+      "defaultName": "Anguilla",
+      "name": "Anguilla",
+      "countryCode": "1264",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "FT",
+      "defaultName": "Anonymous Numbers",
+      "name": "Anonymous Numbers",
+      "countryCode": "888",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AG",
+      "defaultName": "Antigua & Barbuda",
+      "name": "Antigua & Barbuda",
+      "countryCode": "1268",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AR",
+      "defaultName": "Argentina",
+      "name": "Argentina",
+      "countryCode": "54",
+      "patterns": []
+    },
+    {
+      "iso2": "AM",
+      "defaultName": "Armenia",
+      "name": "Armenia",
+      "countryCode": "374",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AW",
+      "defaultName": "Aruba",
+      "name": "Aruba",
+      "countryCode": "297",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AU",
+      "defaultName": "Australia",
+      "name": "Australia",
+      "countryCode": "61",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AT",
+      "defaultName": "Austria",
+      "name": "Austria",
+      "countryCode": "43",
+      "patterns": []
+    },
+    {
+      "iso2": "AZ",
+      "defaultName": "Azerbaijan",
+      "name": "Azerbaijan",
+      "countryCode": "994",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BS",
+      "defaultName": "Bahamas",
+      "name": "Bahamas",
+      "countryCode": "1242",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BH",
+      "defaultName": "Bahrain",
+      "name": "Bahrain",
+      "countryCode": "973",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BD",
+      "defaultName": "Bangladesh",
+      "name": "Bangladesh",
+      "countryCode": "880",
+      "patterns": []
+    },
+    {
+      "iso2": "BB",
+      "defaultName": "Barbados",
+      "name": "Barbados",
+      "countryCode": "1246",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BY",
+      "defaultName": "Belarus",
+      "name": "Belarus",
+      "countryCode": "375",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BE",
+      "defaultName": "Belgium",
+      "name": "Belgium",
+      "countryCode": "32",
+      "patterns": [
+        "XXX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "BZ",
+      "defaultName": "Belize",
+      "name": "Belize",
+      "countryCode": "501",
+      "patterns": []
+    },
+    {
+      "iso2": "BJ",
+      "defaultName": "Benin",
+      "name": "Benin",
+      "countryCode": "229",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BM",
+      "defaultName": "Bermuda",
+      "name": "Bermuda",
+      "countryCode": "1441",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BT",
+      "defaultName": "Bhutan",
+      "name": "Bhutan",
+      "countryCode": "975",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BO",
+      "defaultName": "Bolivia",
+      "name": "Bolivia",
+      "countryCode": "591",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BQ",
+      "defaultName": "Bonaire, Sint Eustatius & Saba",
+      "name": "Bonaire, Sint Eustatius & Saba",
+      "countryCode": "599",
+      "patterns": []
+    },
+    {
+      "iso2": "BA",
+      "defaultName": "Bosnia & Herzegovina",
+      "name": "Bosnia & Herzegovina",
+      "countryCode": "387",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BW",
+      "defaultName": "Botswana",
+      "name": "Botswana",
+      "countryCode": "267",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BR",
+      "defaultName": "Brazil",
+      "name": "Brazil",
+      "countryCode": "55",
+      "patterns": [
+        "XX XXXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "VG",
+      "defaultName": "British Virgin Islands",
+      "name": "British Virgin Islands",
+      "countryCode": "1284",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BN",
+      "defaultName": "Brunei Darussalam",
+      "name": "Brunei Darussalam",
+      "countryCode": "673",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BG",
+      "defaultName": "Bulgaria",
+      "name": "Bulgaria",
+      "countryCode": "359",
+      "patterns": []
+    },
+    {
+      "iso2": "BF",
+      "defaultName": "Burkina Faso",
+      "name": "Burkina Faso",
+      "countryCode": "226",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "BI",
+      "defaultName": "Burundi",
+      "name": "Burundi",
+      "countryCode": "257",
+      "patterns": [
+        "XX XX XXXX"
+      ]
+    },
+    {
+      "iso2": "KH",
+      "defaultName": "Cambodia",
+      "name": "Cambodia",
+      "countryCode": "855",
+      "patterns": []
+    },
+    {
+      "iso2": "CM",
+      "defaultName": "Cameroon",
+      "name": "Cameroon",
+      "countryCode": "237",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CA",
+      "defaultName": "Canada",
+      "name": "Canada",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CV",
+      "defaultName": "Cape Verde",
+      "name": "Cape Verde",
+      "countryCode": "238",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KY",
+      "defaultName": "Cayman Islands",
+      "name": "Cayman Islands",
+      "countryCode": "1345",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CF",
+      "defaultName": "Central African Rep.",
+      "name": "Central African Rep.",
+      "countryCode": "236",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "TD",
+      "defaultName": "Chad",
+      "name": "Chad",
+      "countryCode": "235",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "CL",
+      "defaultName": "Chile",
+      "name": "Chile",
+      "countryCode": "56",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CN",
+      "defaultName": "China",
+      "name": "China",
+      "countryCode": "86",
+      "patterns": [
+        "XXX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CO",
+      "defaultName": "Colombia",
+      "name": "Colombia",
+      "countryCode": "57",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KM",
+      "defaultName": "Comoros",
+      "name": "Comoros",
+      "countryCode": "269",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CD",
+      "defaultName": "Congo (Dem. Rep.)",
+      "name": "Congo (Dem. Rep.)",
+      "countryCode": "243",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CG",
+      "defaultName": "Congo (Rep.)",
+      "name": "Congo (Rep.)",
+      "countryCode": "242",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CK",
+      "defaultName": "Cook Islands",
+      "name": "Cook Islands",
+      "countryCode": "682",
+      "patterns": []
+    },
+    {
+      "iso2": "CR",
+      "defaultName": "Costa Rica",
+      "name": "Costa Rica",
+      "countryCode": "506",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "HR",
+      "defaultName": "Croatia",
+      "name": "Croatia",
+      "countryCode": "385",
+      "patterns": []
+    },
+    {
+      "iso2": "CU",
+      "defaultName": "Cuba",
+      "name": "Cuba",
+      "countryCode": "53",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CW",
+      "defaultName": "Curaçao",
+      "name": "Curaçao",
+      "countryCode": "599",
+      "patterns": []
+    },
+    {
+      "iso2": "CY",
+      "defaultName": "Cyprus",
+      "name": "Cyprus",
+      "countryCode": "357",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CZ",
+      "defaultName": "Czech Republic",
+      "name": "Czech Republic",
+      "countryCode": "420",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "CI",
+      "defaultName": "Côte d`Ivoire",
+      "name": "Côte d`Ivoire",
+      "countryCode": "225",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "DK",
+      "defaultName": "Denmark",
+      "name": "Denmark",
+      "countryCode": "45",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IO",
+      "defaultName": "Diego Garcia",
+      "name": "Diego Garcia",
+      "countryCode": "246",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "DJ",
+      "defaultName": "Djibouti",
+      "name": "Djibouti",
+      "countryCode": "253",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "DM",
+      "defaultName": "Dominica",
+      "name": "Dominica",
+      "countryCode": "1767",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "DO",
+      "defaultName": "Dominican Rep.",
+      "name": "Dominican Rep.",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "EC",
+      "defaultName": "Ecuador",
+      "name": "Ecuador",
+      "countryCode": "593",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "EG",
+      "defaultName": "Egypt",
+      "name": "Egypt",
+      "countryCode": "20",
+      "patterns": [
+        "XX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SV",
+      "defaultName": "El Salvador",
+      "name": "El Salvador",
+      "countryCode": "503",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GQ",
+      "defaultName": "Equatorial Guinea",
+      "name": "Equatorial Guinea",
+      "countryCode": "240",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ER",
+      "defaultName": "Eritrea",
+      "name": "Eritrea",
+      "countryCode": "291",
+      "patterns": [
+        "X XXX XXX"
+      ]
+    },
+    {
+      "iso2": "EE",
+      "defaultName": "Estonia",
+      "name": "Estonia",
+      "countryCode": "372",
+      "patterns": []
+    },
+    {
+      "iso2": "ET",
+      "defaultName": "Ethiopia",
+      "name": "Ethiopia",
+      "countryCode": "251",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "FK",
+      "defaultName": "Falkland Islands",
+      "name": "Falkland Islands",
+      "countryCode": "500",
+      "patterns": []
+    },
+    {
+      "iso2": "FO",
+      "defaultName": "Faroe Islands",
+      "name": "Faroe Islands",
+      "countryCode": "298",
+      "patterns": [
+        "XXX XXX"
+      ]
+    },
+    {
+      "iso2": "FJ",
+      "defaultName": "Fiji",
+      "name": "Fiji",
+      "countryCode": "679",
+      "patterns": []
+    },
+    {
+      "iso2": "FI",
+      "defaultName": "Finland",
+      "name": "Finland",
+      "countryCode": "358",
+      "patterns": []
+    },
+    {
+      "iso2": "FR",
+      "defaultName": "France",
+      "name": "France",
+      "countryCode": "33",
+      "patterns": [
+        "X XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "GF",
+      "defaultName": "French Guiana",
+      "name": "French Guiana",
+      "countryCode": "594",
+      "patterns": []
+    },
+    {
+      "iso2": "PF",
+      "defaultName": "French Polynesia",
+      "name": "French Polynesia",
+      "countryCode": "689",
+      "patterns": []
+    },
+    {
+      "iso2": "GA",
+      "defaultName": "Gabon",
+      "name": "Gabon",
+      "countryCode": "241",
+      "patterns": [
+        "X XX XX XX"
+      ]
+    },
+    {
+      "iso2": "GM",
+      "defaultName": "Gambia",
+      "name": "Gambia",
+      "countryCode": "220",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GE",
+      "defaultName": "Georgia",
+      "name": "Georgia",
+      "countryCode": "995",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "DE",
+      "defaultName": "Germany",
+      "name": "Germany",
+      "countryCode": "49",
+      "patterns": []
+    },
+    {
+      "iso2": "GH",
+      "defaultName": "Ghana",
+      "name": "Ghana",
+      "countryCode": "233",
+      "patterns": []
+    },
+    {
+      "iso2": "GI",
+      "defaultName": "Gibraltar",
+      "name": "Gibraltar",
+      "countryCode": "350",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GO",
+      "defaultName": "Global Mobile Satellite",
+      "name": "Global Mobile Satellite",
+      "countryCode": "881",
+      "patterns": []
+    },
+    {
+      "iso2": "GR",
+      "defaultName": "Greece",
+      "name": "Greece",
+      "countryCode": "30",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GL",
+      "defaultName": "Greenland",
+      "name": "Greenland",
+      "countryCode": "299",
+      "patterns": [
+        "XXX XXX"
+      ]
+    },
+    {
+      "iso2": "GD",
+      "defaultName": "Grenada",
+      "name": "Grenada",
+      "countryCode": "1473",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GP",
+      "defaultName": "Guadeloupe",
+      "name": "Guadeloupe",
+      "countryCode": "590",
+      "patterns": [
+        "XXX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "GU",
+      "defaultName": "Guam",
+      "name": "Guam",
+      "countryCode": "1671",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GT",
+      "defaultName": "Guatemala",
+      "name": "Guatemala",
+      "countryCode": "502",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GN",
+      "defaultName": "Guinea",
+      "name": "Guinea",
+      "countryCode": "224",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "GW",
+      "defaultName": "Guinea-Bissau",
+      "name": "Guinea-Bissau",
+      "countryCode": "245",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GY",
+      "defaultName": "Guyana",
+      "name": "Guyana",
+      "countryCode": "592",
+      "patterns": []
+    },
+    {
+      "iso2": "HT",
+      "defaultName": "Haiti",
+      "name": "Haiti",
+      "countryCode": "509",
+      "patterns": []
+    },
+    {
+      "iso2": "HN",
+      "defaultName": "Honduras",
+      "name": "Honduras",
+      "countryCode": "504",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "HK",
+      "defaultName": "Hong Kong",
+      "name": "Hong Kong",
+      "countryCode": "852",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "HU",
+      "defaultName": "Hungary",
+      "name": "Hungary",
+      "countryCode": "36",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "IS",
+      "defaultName": "Iceland",
+      "name": "Iceland",
+      "countryCode": "354",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IN",
+      "defaultName": "India",
+      "name": "India",
+      "countryCode": "91",
+      "patterns": [
+        "XXXXX XXXXX"
+      ]
+    },
+    {
+      "iso2": "ID",
+      "defaultName": "Indonesia",
+      "name": "Indonesia",
+      "countryCode": "62",
+      "patterns": []
+    },
+    {
+      "iso2": "GO",
+      "defaultName": "International Networks",
+      "name": "International Networks",
+      "countryCode": "883",
+      "patterns": []
+    },
+    {
+      "iso2": "GO",
+      "defaultName": "International Networks",
+      "name": "International Networks",
+      "countryCode": "882",
+      "patterns": []
+    },
+    {
+      "iso2": "IR",
+      "defaultName": "Iran",
+      "name": "Iran",
+      "countryCode": "98",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IQ",
+      "defaultName": "Iraq",
+      "name": "Iraq",
+      "countryCode": "964",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IE",
+      "defaultName": "Ireland",
+      "name": "Ireland",
+      "countryCode": "353",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IL",
+      "defaultName": "Israel",
+      "name": "Israel",
+      "countryCode": "972",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IT",
+      "defaultName": "Italy",
+      "name": "Italy",
+      "countryCode": "39",
+      "patterns": []
+    },
+    {
+      "iso2": "JM",
+      "defaultName": "Jamaica",
+      "name": "Jamaica",
+      "countryCode": "1876",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "JP",
+      "defaultName": "Japan",
+      "name": "Japan",
+      "countryCode": "81",
+      "patterns": [
+        "XX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "JO",
+      "defaultName": "Jordan",
+      "name": "Jordan",
+      "countryCode": "962",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KZ",
+      "defaultName": "Kazakhstan",
+      "name": "Kazakhstan",
+      "countryCode": "7",
+      "patterns": [
+        "XXX XXX XX XX"
+      ]
+    },
+    {
+      "iso2": "KE",
+      "defaultName": "Kenya",
+      "name": "Kenya",
+      "countryCode": "254",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "KI",
+      "defaultName": "Kiribati",
+      "name": "Kiribati",
+      "countryCode": "686",
+      "patterns": []
+    },
+    {
+      "iso2": "XK",
+      "defaultName": "Kosovo",
+      "name": "Kosovo",
+      "countryCode": "383",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KW",
+      "defaultName": "Kuwait",
+      "name": "Kuwait",
+      "countryCode": "965",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KG",
+      "defaultName": "Kyrgyzstan",
+      "name": "Kyrgyzstan",
+      "countryCode": "996",
+      "patterns": [
+        "XXX XXXXXX"
+      ]
+    },
+    {
+      "iso2": "LA",
+      "defaultName": "Laos",
+      "name": "Laos",
+      "countryCode": "856",
+      "patterns": [
+        "XX XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "LV",
+      "defaultName": "Latvia",
+      "name": "Latvia",
+      "countryCode": "371",
+      "patterns": [
+        "XXX XXXXX"
+      ]
+    },
+    {
+      "iso2": "LB",
+      "defaultName": "Lebanon",
+      "name": "Lebanon",
+      "countryCode": "961",
+      "patterns": []
+    },
+    {
+      "iso2": "LS",
+      "defaultName": "Lesotho",
+      "name": "Lesotho",
+      "countryCode": "266",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "LR",
+      "defaultName": "Liberia",
+      "name": "Liberia",
+      "countryCode": "231",
+      "patterns": []
+    },
+    {
+      "iso2": "LY",
+      "defaultName": "Libya",
+      "name": "Libya",
+      "countryCode": "218",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "LI",
+      "defaultName": "Liechtenstein",
+      "name": "Liechtenstein",
+      "countryCode": "423",
+      "patterns": []
+    },
+    {
+      "iso2": "LT",
+      "defaultName": "Lithuania",
+      "name": "Lithuania",
+      "countryCode": "370",
+      "patterns": [
+        "XXX XXXXX"
+      ]
+    },
+    {
+      "iso2": "LU",
+      "defaultName": "Luxembourg",
+      "name": "Luxembourg",
+      "countryCode": "352",
+      "patterns": []
+    },
+    {
+      "iso2": "MO",
+      "defaultName": "Macau",
+      "name": "Macau",
+      "countryCode": "853",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MK",
+      "defaultName": "Macedonia",
+      "name": "Macedonia",
+      "countryCode": "389",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "MG",
+      "defaultName": "Madagascar",
+      "name": "Madagascar",
+      "countryCode": "261",
+      "patterns": [
+        "XX XX XXX XX"
+      ]
+    },
+    {
+      "iso2": "MW",
+      "defaultName": "Malawi",
+      "name": "Malawi",
+      "countryCode": "265",
+      "patterns": [
+        "77 XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MY",
+      "defaultName": "Malaysia",
+      "name": "Malaysia",
+      "countryCode": "60",
+      "patterns": []
+    },
+    {
+      "iso2": "MV",
+      "defaultName": "Maldives",
+      "name": "Maldives",
+      "countryCode": "960",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "ML",
+      "defaultName": "Mali",
+      "name": "Mali",
+      "countryCode": "223",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MT",
+      "defaultName": "Malta",
+      "name": "Malta",
+      "countryCode": "356",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "MH",
+      "defaultName": "Marshall Islands",
+      "name": "Marshall Islands",
+      "countryCode": "692",
+      "patterns": []
+    },
+    {
+      "iso2": "MQ",
+      "defaultName": "Martinique",
+      "name": "Martinique",
+      "countryCode": "596",
+      "patterns": []
+    },
+    {
+      "iso2": "MR",
+      "defaultName": "Mauritania",
+      "name": "Mauritania",
+      "countryCode": "222",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MU",
+      "defaultName": "Mauritius",
+      "name": "Mauritius",
+      "countryCode": "230",
+      "patterns": []
+    },
+    {
+      "iso2": "MX",
+      "defaultName": "Mexico",
+      "name": "Mexico",
+      "countryCode": "52",
+      "patterns": []
+    },
+    {
+      "iso2": "FM",
+      "defaultName": "Micronesia",
+      "name": "Micronesia",
+      "countryCode": "691",
+      "patterns": []
+    },
+    {
+      "iso2": "MD",
+      "defaultName": "Moldova",
+      "name": "Moldova",
+      "countryCode": "373",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "MC",
+      "defaultName": "Monaco",
+      "name": "Monaco",
+      "countryCode": "377",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MN",
+      "defaultName": "Mongolia",
+      "name": "Mongolia",
+      "countryCode": "976",
+      "patterns": [
+        "XX XX XXXX"
+      ]
+    },
+    {
+      "iso2": "ME",
+      "defaultName": "Montenegro",
+      "name": "Montenegro",
+      "countryCode": "382",
+      "patterns": []
+    },
+    {
+      "iso2": "MS",
+      "defaultName": "Montserrat",
+      "name": "Montserrat",
+      "countryCode": "1664",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MA",
+      "defaultName": "Morocco",
+      "name": "Morocco",
+      "countryCode": "212",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MZ",
+      "defaultName": "Mozambique",
+      "name": "Mozambique",
+      "countryCode": "258",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MM",
+      "defaultName": "Myanmar",
+      "name": "Myanmar",
+      "countryCode": "95",
+      "patterns": []
+    },
+    {
+      "iso2": "NA",
+      "defaultName": "Namibia",
+      "name": "Namibia",
+      "countryCode": "264",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NR",
+      "defaultName": "Nauru",
+      "name": "Nauru",
+      "countryCode": "674",
+      "patterns": []
+    },
+    {
+      "iso2": "NP",
+      "defaultName": "Nepal",
+      "name": "Nepal",
+      "countryCode": "977",
+      "patterns": [
+        "XX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NL",
+      "defaultName": "Netherlands",
+      "name": "Netherlands",
+      "countryCode": "31",
+      "patterns": [
+        "X XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "NC",
+      "defaultName": "New Caledonia",
+      "name": "New Caledonia",
+      "countryCode": "687",
+      "patterns": []
+    },
+    {
+      "iso2": "NZ",
+      "defaultName": "New Zealand",
+      "name": "New Zealand",
+      "countryCode": "64",
+      "patterns": []
+    },
+    {
+      "iso2": "NI",
+      "defaultName": "Nicaragua",
+      "name": "Nicaragua",
+      "countryCode": "505",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NE",
+      "defaultName": "Niger",
+      "name": "Niger",
+      "countryCode": "227",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "NG",
+      "defaultName": "Nigeria",
+      "name": "Nigeria",
+      "countryCode": "234",
+      "patterns": []
+    },
+    {
+      "iso2": "NU",
+      "defaultName": "Niue",
+      "name": "Niue",
+      "countryCode": "683",
+      "patterns": []
+    },
+    {
+      "iso2": "NF",
+      "defaultName": "Norfolk Island",
+      "name": "Norfolk Island",
+      "countryCode": "672",
+      "patterns": []
+    },
+    {
+      "iso2": "KP",
+      "defaultName": "North Korea",
+      "name": "North Korea",
+      "countryCode": "850",
+      "patterns": []
+    },
+    {
+      "iso2": "MP",
+      "defaultName": "Northern Mariana Islands",
+      "name": "Northern Mariana Islands",
+      "countryCode": "1670",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NO",
+      "defaultName": "Norway",
+      "name": "Norway",
+      "countryCode": "47",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "OM",
+      "defaultName": "Oman",
+      "name": "Oman",
+      "countryCode": "968",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PK",
+      "defaultName": "Pakistan",
+      "name": "Pakistan",
+      "countryCode": "92",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PW",
+      "defaultName": "Palau",
+      "name": "Palau",
+      "countryCode": "680",
+      "patterns": []
+    },
+    {
+      "iso2": "PS",
+      "defaultName": "Palestine",
+      "name": "Palestine",
+      "countryCode": "970",
+      "patterns": [
+        "XXX XX XXXX"
+      ]
+    },
+    {
+      "iso2": "PA",
+      "defaultName": "Panama",
+      "name": "Panama",
+      "countryCode": "507",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PG",
+      "defaultName": "Papua New Guinea",
+      "name": "Papua New Guinea",
+      "countryCode": "675",
+      "patterns": []
+    },
+    {
+      "iso2": "PY",
+      "defaultName": "Paraguay",
+      "name": "Paraguay",
+      "countryCode": "595",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "PE",
+      "defaultName": "Peru",
+      "name": "Peru",
+      "countryCode": "51",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "PH",
+      "defaultName": "Philippines",
+      "name": "Philippines",
+      "countryCode": "63",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PL",
+      "defaultName": "Poland",
+      "name": "Poland",
+      "countryCode": "48",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "PT",
+      "defaultName": "Portugal",
+      "name": "Portugal",
+      "countryCode": "351",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PR",
+      "defaultName": "Puerto Rico",
+      "name": "Puerto Rico",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "QA",
+      "defaultName": "Qatar",
+      "name": "Qatar",
+      "countryCode": "974",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "RO",
+      "defaultName": "Romania",
+      "name": "Romania",
+      "countryCode": "40",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "RU",
+      "defaultName": "Russian Federation",
+      "name": "Russian Federation",
+      "countryCode": "7",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "RW",
+      "defaultName": "Rwanda",
+      "name": "Rwanda",
+      "countryCode": "250",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "RE",
+      "defaultName": "Réunion",
+      "name": "Réunion",
+      "countryCode": "262",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SH",
+      "defaultName": "Saint Helena",
+      "name": "Saint Helena",
+      "countryCode": "290",
+      "patterns": [
+        "XX XXX"
+      ]
+    },
+    {
+      "iso2": "SH",
+      "defaultName": "Saint Helena",
+      "name": "Saint Helena",
+      "countryCode": "247",
+      "patterns": [
+        "XXXX"
+      ]
+    },
+    {
+      "iso2": "KN",
+      "defaultName": "Saint Kitts & Nevis",
+      "name": "Saint Kitts & Nevis",
+      "countryCode": "1869",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "LC",
+      "defaultName": "Saint Lucia",
+      "name": "Saint Lucia",
+      "countryCode": "1758",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PM",
+      "defaultName": "Saint Pierre & Miquelon",
+      "name": "Saint Pierre & Miquelon",
+      "countryCode": "508",
+      "patterns": []
+    },
+    {
+      "iso2": "VC",
+      "defaultName": "Saint Vincent & the Grenadines",
+      "name": "Saint Vincent & the Grenadines",
+      "countryCode": "1784",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "WS",
+      "defaultName": "Samoa",
+      "name": "Samoa",
+      "countryCode": "685",
+      "patterns": []
+    },
+    {
+      "iso2": "SM",
+      "defaultName": "San Marino",
+      "name": "San Marino",
+      "countryCode": "378",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SA",
+      "defaultName": "Saudi Arabia",
+      "name": "Saudi Arabia",
+      "countryCode": "966",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SN",
+      "defaultName": "Senegal",
+      "name": "Senegal",
+      "countryCode": "221",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "RS",
+      "defaultName": "Serbia",
+      "name": "Serbia",
+      "countryCode": "381",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SC",
+      "defaultName": "Seychelles",
+      "name": "Seychelles",
+      "countryCode": "248",
+      "patterns": [
+        "X XX XX XX"
+      ]
+    },
+    {
+      "iso2": "SL",
+      "defaultName": "Sierra Leone",
+      "name": "Sierra Leone",
+      "countryCode": "232",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SG",
+      "defaultName": "Singapore",
+      "name": "Singapore",
+      "countryCode": "65",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SX",
+      "defaultName": "Sint Maarten",
+      "name": "Sint Maarten",
+      "countryCode": "1721",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SK",
+      "defaultName": "Slovakia",
+      "name": "Slovakia",
+      "countryCode": "421",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SI",
+      "defaultName": "Slovenia",
+      "name": "Slovenia",
+      "countryCode": "386",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SB",
+      "defaultName": "Solomon Islands",
+      "name": "Solomon Islands",
+      "countryCode": "677",
+      "patterns": []
+    },
+    {
+      "iso2": "SO",
+      "defaultName": "Somalia",
+      "name": "Somalia",
+      "countryCode": "252",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ZA",
+      "defaultName": "South Africa",
+      "name": "South Africa",
+      "countryCode": "27",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KR",
+      "defaultName": "South Korea",
+      "name": "South Korea",
+      "countryCode": "82",
+      "patterns": []
+    },
+    {
+      "iso2": "SS",
+      "defaultName": "South Sudan",
+      "name": "South Sudan",
+      "countryCode": "211",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "ES",
+      "defaultName": "Spain",
+      "name": "Spain",
+      "countryCode": "34",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "LK",
+      "defaultName": "Sri Lanka",
+      "name": "Sri Lanka",
+      "countryCode": "94",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SD",
+      "defaultName": "Sudan",
+      "name": "Sudan",
+      "countryCode": "249",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SR",
+      "defaultName": "Suriname",
+      "name": "Suriname",
+      "countryCode": "597",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SZ",
+      "defaultName": "Swaziland",
+      "name": "Swaziland",
+      "countryCode": "268",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SE",
+      "defaultName": "Sweden",
+      "name": "Sweden",
+      "countryCode": "46",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CH",
+      "defaultName": "Switzerland",
+      "name": "Switzerland",
+      "countryCode": "41",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SY",
+      "defaultName": "Syria",
+      "name": "Syria",
+      "countryCode": "963",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ST",
+      "defaultName": "São Tomé & Príncipe",
+      "name": "São Tomé & Príncipe",
+      "countryCode": "239",
+      "patterns": [
+        "XX XXXXX"
+      ]
+    },
+    {
+      "iso2": "TW",
+      "defaultName": "Taiwan",
+      "name": "Taiwan",
+      "countryCode": "886",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "TJ",
+      "defaultName": "Tajikistan",
+      "name": "Tajikistan",
+      "countryCode": "992",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TZ",
+      "defaultName": "Tanzania",
+      "name": "Tanzania",
+      "countryCode": "255",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TH",
+      "defaultName": "Thailand",
+      "name": "Thailand",
+      "countryCode": "66",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TL",
+      "defaultName": "Timor-Leste",
+      "name": "Timor-Leste",
+      "countryCode": "670",
+      "patterns": []
+    },
+    {
+      "iso2": "TG",
+      "defaultName": "Togo",
+      "name": "Togo",
+      "countryCode": "228",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "TK",
+      "defaultName": "Tokelau",
+      "name": "Tokelau",
+      "countryCode": "690",
+      "patterns": []
+    },
+    {
+      "iso2": "TO",
+      "defaultName": "Tonga",
+      "name": "Tonga",
+      "countryCode": "676",
+      "patterns": []
+    },
+    {
+      "iso2": "TT",
+      "defaultName": "Trinidad & Tobago",
+      "name": "Trinidad & Tobago",
+      "countryCode": "1868",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TN",
+      "defaultName": "Tunisia",
+      "name": "Tunisia",
+      "countryCode": "216",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "TR",
+      "defaultName": "Turkey",
+      "name": "Turkey",
+      "countryCode": "90",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TM",
+      "defaultName": "Turkmenistan",
+      "name": "Turkmenistan",
+      "countryCode": "993",
+      "patterns": [
+        "XX XXXXXX"
+      ]
+    },
+    {
+      "iso2": "TC",
+      "defaultName": "Turks & Caicos Islands",
+      "name": "Turks & Caicos Islands",
+      "countryCode": "1649",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TV",
+      "defaultName": "Tuvalu",
+      "name": "Tuvalu",
+      "countryCode": "688",
+      "patterns": []
+    },
+    {
+      "iso2": "VI",
+      "defaultName": "US Virgin Islands",
+      "name": "US Virgin Islands",
+      "countryCode": "1340",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "US",
+      "defaultName": "USA",
+      "name": "USA",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "UG",
+      "defaultName": "Uganda",
+      "name": "Uganda",
+      "countryCode": "256",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "UA",
+      "defaultName": "Ukraine",
+      "name": "Ukraine",
+      "countryCode": "380",
+      "patterns": [
+        "XX XXX XX XX"
+      ]
+    },
+    {
+      "iso2": "AE",
+      "defaultName": "United Arab Emirates",
+      "name": "United Arab Emirates",
+      "countryCode": "971",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GB",
+      "defaultName": "United Kingdom",
+      "name": "United Kingdom",
+      "countryCode": "44",
+      "patterns": [
+        "XXXX XXXXXX"
+      ]
+    },
+    {
+      "iso2": "UY",
+      "defaultName": "Uruguay",
+      "name": "Uruguay",
+      "countryCode": "598",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "UZ",
+      "defaultName": "Uzbekistan",
+      "name": "Uzbekistan",
+      "countryCode": "998",
+      "patterns": [
+        "XX XXXXXXX"
+      ]
+    },
+    {
+      "iso2": "VU",
+      "defaultName": "Vanuatu",
+      "name": "Vanuatu",
+      "countryCode": "678",
+      "patterns": []
+    },
+    {
+      "iso2": "VE",
+      "defaultName": "Venezuela",
+      "name": "Venezuela",
+      "countryCode": "58",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "VN",
+      "defaultName": "Vietnam",
+      "name": "Vietnam",
+      "countryCode": "84",
+      "patterns": []
+    },
+    {
+      "iso2": "WF",
+      "defaultName": "Wallis & Futuna",
+      "name": "Wallis & Futuna",
+      "countryCode": "681",
+      "patterns": []
+    },
+    {
+      "iso2": "YL",
+      "defaultName": "Y-land",
+      "name": "Y-land",
+      "countryCode": "42",
+      "patterns": []
+    },
+    {
+      "iso2": "YE",
+      "defaultName": "Yemen",
+      "name": "Yemen",
+      "countryCode": "967",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ZM",
+      "defaultName": "Zambia",
+      "name": "Zambia",
+      "countryCode": "260",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "ZW",
+      "defaultName": "Zimbabwe",
+      "name": "Zimbabwe",
+      "countryCode": "263",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    }
+  ],
+  "general": [
+    {
+      "iso2": "AF",
+      "defaultName": "Afghanistan",
+      "name": "Afghanistan",
+      "countryCode": "93",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AL",
+      "defaultName": "Albania",
+      "name": "Albania",
+      "countryCode": "355",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "DZ",
+      "defaultName": "Algeria",
+      "name": "Algeria",
+      "countryCode": "213",
+      "patterns": [
+        "XXX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "AS",
+      "defaultName": "American Samoa",
+      "name": "American Samoa",
+      "countryCode": "1684",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AD",
+      "defaultName": "Andorra",
+      "name": "Andorra",
+      "countryCode": "376",
+      "patterns": [
+        "XX XX XX"
+      ]
+    },
+    {
+      "iso2": "AO",
+      "defaultName": "Angola",
+      "name": "Angola",
+      "countryCode": "244",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AI",
+      "defaultName": "Anguilla",
+      "name": "Anguilla",
+      "countryCode": "1264",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "FT",
+      "defaultName": "Anonymous Numbers",
+      "name": "Anonymous Numbers",
+      "countryCode": "888",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AG",
+      "defaultName": "Antigua & Barbuda",
+      "name": "Antigua & Barbuda",
+      "countryCode": "1268",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AR",
+      "defaultName": "Argentina",
+      "name": "Argentina",
+      "countryCode": "54",
+      "patterns": []
+    },
+    {
+      "iso2": "AM",
+      "defaultName": "Armenia",
+      "name": "Armenia",
+      "countryCode": "374",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AW",
+      "defaultName": "Aruba",
+      "name": "Aruba",
+      "countryCode": "297",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "AU",
+      "defaultName": "Australia",
+      "name": "Australia",
+      "countryCode": "61",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "AT",
+      "defaultName": "Austria",
+      "name": "Austria",
+      "countryCode": "43",
+      "patterns": []
+    },
+    {
+      "iso2": "AZ",
+      "defaultName": "Azerbaijan",
+      "name": "Azerbaijan",
+      "countryCode": "994",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BS",
+      "defaultName": "Bahamas",
+      "name": "Bahamas",
+      "countryCode": "1242",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BH",
+      "defaultName": "Bahrain",
+      "name": "Bahrain",
+      "countryCode": "973",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BD",
+      "defaultName": "Bangladesh",
+      "name": "Bangladesh",
+      "countryCode": "880",
+      "patterns": []
+    },
+    {
+      "iso2": "BB",
+      "defaultName": "Barbados",
+      "name": "Barbados",
+      "countryCode": "1246",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BY",
+      "defaultName": "Belarus",
+      "name": "Belarus",
+      "countryCode": "375",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BE",
+      "defaultName": "Belgium",
+      "name": "Belgium",
+      "countryCode": "32",
+      "patterns": [
+        "XXX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "BZ",
+      "defaultName": "Belize",
+      "name": "Belize",
+      "countryCode": "501",
+      "patterns": []
+    },
+    {
+      "iso2": "BJ",
+      "defaultName": "Benin",
+      "name": "Benin",
+      "countryCode": "229",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BM",
+      "defaultName": "Bermuda",
+      "name": "Bermuda",
+      "countryCode": "1441",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BT",
+      "defaultName": "Bhutan",
+      "name": "Bhutan",
+      "countryCode": "975",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BO",
+      "defaultName": "Bolivia",
+      "name": "Bolivia",
+      "countryCode": "591",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BQ",
+      "defaultName": "Bonaire, Sint Eustatius & Saba",
+      "name": "Bonaire, Sint Eustatius & Saba",
+      "countryCode": "599",
+      "patterns": []
+    },
+    {
+      "iso2": "BA",
+      "defaultName": "Bosnia & Herzegovina",
+      "name": "Bosnia & Herzegovina",
+      "countryCode": "387",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BW",
+      "defaultName": "Botswana",
+      "name": "Botswana",
+      "countryCode": "267",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "BR",
+      "defaultName": "Brazil",
+      "name": "Brazil",
+      "countryCode": "55",
+      "patterns": [
+        "XX XXXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "VG",
+      "defaultName": "British Virgin Islands",
+      "name": "British Virgin Islands",
+      "countryCode": "1284",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BN",
+      "defaultName": "Brunei Darussalam",
+      "name": "Brunei Darussalam",
+      "countryCode": "673",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "BG",
+      "defaultName": "Bulgaria",
+      "name": "Bulgaria",
+      "countryCode": "359",
+      "patterns": []
+    },
+    {
+      "iso2": "BF",
+      "defaultName": "Burkina Faso",
+      "name": "Burkina Faso",
+      "countryCode": "226",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "BI",
+      "defaultName": "Burundi",
+      "name": "Burundi",
+      "countryCode": "257",
+      "patterns": [
+        "XX XX XXXX"
+      ]
+    },
+    {
+      "iso2": "KH",
+      "defaultName": "Cambodia",
+      "name": "Cambodia",
+      "countryCode": "855",
+      "patterns": []
+    },
+    {
+      "iso2": "CM",
+      "defaultName": "Cameroon",
+      "name": "Cameroon",
+      "countryCode": "237",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CA",
+      "defaultName": "Canada",
+      "name": "Canada",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CV",
+      "defaultName": "Cape Verde",
+      "name": "Cape Verde",
+      "countryCode": "238",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KY",
+      "defaultName": "Cayman Islands",
+      "name": "Cayman Islands",
+      "countryCode": "1345",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CF",
+      "defaultName": "Central African Rep.",
+      "name": "Central African Rep.",
+      "countryCode": "236",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "TD",
+      "defaultName": "Chad",
+      "name": "Chad",
+      "countryCode": "235",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "CL",
+      "defaultName": "Chile",
+      "name": "Chile",
+      "countryCode": "56",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CN",
+      "defaultName": "China",
+      "name": "China",
+      "countryCode": "86",
+      "patterns": [
+        "XXX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CO",
+      "defaultName": "Colombia",
+      "name": "Colombia",
+      "countryCode": "57",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KM",
+      "defaultName": "Comoros",
+      "name": "Comoros",
+      "countryCode": "269",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CD",
+      "defaultName": "Congo (Dem. Rep.)",
+      "name": "Congo (Dem. Rep.)",
+      "countryCode": "243",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CG",
+      "defaultName": "Congo (Rep.)",
+      "name": "Congo (Rep.)",
+      "countryCode": "242",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CK",
+      "defaultName": "Cook Islands",
+      "name": "Cook Islands",
+      "countryCode": "682",
+      "patterns": []
+    },
+    {
+      "iso2": "CR",
+      "defaultName": "Costa Rica",
+      "name": "Costa Rica",
+      "countryCode": "506",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "HR",
+      "defaultName": "Croatia",
+      "name": "Croatia",
+      "countryCode": "385",
+      "patterns": []
+    },
+    {
+      "iso2": "CU",
+      "defaultName": "Cuba",
+      "name": "Cuba",
+      "countryCode": "53",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CW",
+      "defaultName": "Curaçao",
+      "name": "Curaçao",
+      "countryCode": "599",
+      "patterns": []
+    },
+    {
+      "iso2": "CY",
+      "defaultName": "Cyprus",
+      "name": "Cyprus",
+      "countryCode": "357",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CZ",
+      "defaultName": "Czech Republic",
+      "name": "Czech Republic",
+      "countryCode": "420",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "CI",
+      "defaultName": "Côte d`Ivoire",
+      "name": "Côte d`Ivoire",
+      "countryCode": "225",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "DK",
+      "defaultName": "Denmark",
+      "name": "Denmark",
+      "countryCode": "45",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IO",
+      "defaultName": "Diego Garcia",
+      "name": "Diego Garcia",
+      "countryCode": "246",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "DJ",
+      "defaultName": "Djibouti",
+      "name": "Djibouti",
+      "countryCode": "253",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "DM",
+      "defaultName": "Dominica",
+      "name": "Dominica",
+      "countryCode": "1767",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "DO",
+      "defaultName": "Dominican Rep.",
+      "name": "Dominican Rep.",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "EC",
+      "defaultName": "Ecuador",
+      "name": "Ecuador",
+      "countryCode": "593",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "EG",
+      "defaultName": "Egypt",
+      "name": "Egypt",
+      "countryCode": "20",
+      "patterns": [
+        "XX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SV",
+      "defaultName": "El Salvador",
+      "name": "El Salvador",
+      "countryCode": "503",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GQ",
+      "defaultName": "Equatorial Guinea",
+      "name": "Equatorial Guinea",
+      "countryCode": "240",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ER",
+      "defaultName": "Eritrea",
+      "name": "Eritrea",
+      "countryCode": "291",
+      "patterns": [
+        "X XXX XXX"
+      ]
+    },
+    {
+      "iso2": "EE",
+      "defaultName": "Estonia",
+      "name": "Estonia",
+      "countryCode": "372",
+      "patterns": []
+    },
+    {
+      "iso2": "ET",
+      "defaultName": "Ethiopia",
+      "name": "Ethiopia",
+      "countryCode": "251",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "FK",
+      "defaultName": "Falkland Islands",
+      "name": "Falkland Islands",
+      "countryCode": "500",
+      "patterns": []
+    },
+    {
+      "iso2": "FO",
+      "defaultName": "Faroe Islands",
+      "name": "Faroe Islands",
+      "countryCode": "298",
+      "patterns": [
+        "XXX XXX"
+      ]
+    },
+    {
+      "iso2": "FJ",
+      "defaultName": "Fiji",
+      "name": "Fiji",
+      "countryCode": "679",
+      "patterns": []
+    },
+    {
+      "iso2": "FI",
+      "defaultName": "Finland",
+      "name": "Finland",
+      "countryCode": "358",
+      "patterns": []
+    },
+    {
+      "iso2": "FR",
+      "defaultName": "France",
+      "name": "France",
+      "countryCode": "33",
+      "patterns": [
+        "X XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "GF",
+      "defaultName": "French Guiana",
+      "name": "French Guiana",
+      "countryCode": "594",
+      "patterns": []
+    },
+    {
+      "iso2": "PF",
+      "defaultName": "French Polynesia",
+      "name": "French Polynesia",
+      "countryCode": "689",
+      "patterns": []
+    },
+    {
+      "iso2": "GA",
+      "defaultName": "Gabon",
+      "name": "Gabon",
+      "countryCode": "241",
+      "patterns": [
+        "X XX XX XX"
+      ]
+    },
+    {
+      "iso2": "GM",
+      "defaultName": "Gambia",
+      "name": "Gambia",
+      "countryCode": "220",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GE",
+      "defaultName": "Georgia",
+      "name": "Georgia",
+      "countryCode": "995",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "DE",
+      "defaultName": "Germany",
+      "name": "Germany",
+      "countryCode": "49",
+      "patterns": []
+    },
+    {
+      "iso2": "GH",
+      "defaultName": "Ghana",
+      "name": "Ghana",
+      "countryCode": "233",
+      "patterns": []
+    },
+    {
+      "iso2": "GI",
+      "defaultName": "Gibraltar",
+      "name": "Gibraltar",
+      "countryCode": "350",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GO",
+      "defaultName": "Global Mobile Satellite",
+      "name": "Global Mobile Satellite",
+      "countryCode": "881",
+      "patterns": []
+    },
+    {
+      "iso2": "GR",
+      "defaultName": "Greece",
+      "name": "Greece",
+      "countryCode": "30",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GL",
+      "defaultName": "Greenland",
+      "name": "Greenland",
+      "countryCode": "299",
+      "patterns": [
+        "XXX XXX"
+      ]
+    },
+    {
+      "iso2": "GD",
+      "defaultName": "Grenada",
+      "name": "Grenada",
+      "countryCode": "1473",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GP",
+      "defaultName": "Guadeloupe",
+      "name": "Guadeloupe",
+      "countryCode": "590",
+      "patterns": [
+        "XXX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "GU",
+      "defaultName": "Guam",
+      "name": "Guam",
+      "countryCode": "1671",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GT",
+      "defaultName": "Guatemala",
+      "name": "Guatemala",
+      "countryCode": "502",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GN",
+      "defaultName": "Guinea",
+      "name": "Guinea",
+      "countryCode": "224",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "GW",
+      "defaultName": "Guinea-Bissau",
+      "name": "Guinea-Bissau",
+      "countryCode": "245",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GY",
+      "defaultName": "Guyana",
+      "name": "Guyana",
+      "countryCode": "592",
+      "patterns": []
+    },
+    {
+      "iso2": "HT",
+      "defaultName": "Haiti",
+      "name": "Haiti",
+      "countryCode": "509",
+      "patterns": []
+    },
+    {
+      "iso2": "HN",
+      "defaultName": "Honduras",
+      "name": "Honduras",
+      "countryCode": "504",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "HK",
+      "defaultName": "Hong Kong",
+      "name": "Hong Kong",
+      "countryCode": "852",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "HU",
+      "defaultName": "Hungary",
+      "name": "Hungary",
+      "countryCode": "36",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "IS",
+      "defaultName": "Iceland",
+      "name": "Iceland",
+      "countryCode": "354",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IN",
+      "defaultName": "India",
+      "name": "India",
+      "countryCode": "91",
+      "patterns": [
+        "XXXXX XXXXX"
+      ]
+    },
+    {
+      "iso2": "ID",
+      "defaultName": "Indonesia",
+      "name": "Indonesia",
+      "countryCode": "62",
+      "patterns": []
+    },
+    {
+      "iso2": "IR",
+      "defaultName": "Iran",
+      "name": "Iran",
+      "countryCode": "98",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IQ",
+      "defaultName": "Iraq",
+      "name": "Iraq",
+      "countryCode": "964",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IE",
+      "defaultName": "Ireland",
+      "name": "Ireland",
+      "countryCode": "353",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IL",
+      "defaultName": "Israel",
+      "name": "Israel",
+      "countryCode": "972",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "IT",
+      "defaultName": "Italy",
+      "name": "Italy",
+      "countryCode": "39",
+      "patterns": []
+    },
+    {
+      "iso2": "JM",
+      "defaultName": "Jamaica",
+      "name": "Jamaica",
+      "countryCode": "1876",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "JP",
+      "defaultName": "Japan",
+      "name": "Japan",
+      "countryCode": "81",
+      "patterns": [
+        "XX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "JO",
+      "defaultName": "Jordan",
+      "name": "Jordan",
+      "countryCode": "962",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KZ",
+      "defaultName": "Kazakhstan",
+      "name": "Kazakhstan",
+      "countryCode": "7",
+      "patterns": [
+        "XXX XXX XX XX"
+      ]
+    },
+    {
+      "iso2": "KE",
+      "defaultName": "Kenya",
+      "name": "Kenya",
+      "countryCode": "254",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "KI",
+      "defaultName": "Kiribati",
+      "name": "Kiribati",
+      "countryCode": "686",
+      "patterns": []
+    },
+    {
+      "iso2": "XK",
+      "defaultName": "Kosovo",
+      "name": "Kosovo",
+      "countryCode": "383",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KW",
+      "defaultName": "Kuwait",
+      "name": "Kuwait",
+      "countryCode": "965",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KG",
+      "defaultName": "Kyrgyzstan",
+      "name": "Kyrgyzstan",
+      "countryCode": "996",
+      "patterns": [
+        "XXX XXXXXX"
+      ]
+    },
+    {
+      "iso2": "LA",
+      "defaultName": "Laos",
+      "name": "Laos",
+      "countryCode": "856",
+      "patterns": [
+        "XX XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "LV",
+      "defaultName": "Latvia",
+      "name": "Latvia",
+      "countryCode": "371",
+      "patterns": [
+        "XXX XXXXX"
+      ]
+    },
+    {
+      "iso2": "LB",
+      "defaultName": "Lebanon",
+      "name": "Lebanon",
+      "countryCode": "961",
+      "patterns": []
+    },
+    {
+      "iso2": "LS",
+      "defaultName": "Lesotho",
+      "name": "Lesotho",
+      "countryCode": "266",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "LR",
+      "defaultName": "Liberia",
+      "name": "Liberia",
+      "countryCode": "231",
+      "patterns": []
+    },
+    {
+      "iso2": "LY",
+      "defaultName": "Libya",
+      "name": "Libya",
+      "countryCode": "218",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "LI",
+      "defaultName": "Liechtenstein",
+      "name": "Liechtenstein",
+      "countryCode": "423",
+      "patterns": []
+    },
+    {
+      "iso2": "LT",
+      "defaultName": "Lithuania",
+      "name": "Lithuania",
+      "countryCode": "370",
+      "patterns": [
+        "XXX XXXXX"
+      ]
+    },
+    {
+      "iso2": "LU",
+      "defaultName": "Luxembourg",
+      "name": "Luxembourg",
+      "countryCode": "352",
+      "patterns": []
+    },
+    {
+      "iso2": "MO",
+      "defaultName": "Macau",
+      "name": "Macau",
+      "countryCode": "853",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MK",
+      "defaultName": "Macedonia",
+      "name": "Macedonia",
+      "countryCode": "389",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "MG",
+      "defaultName": "Madagascar",
+      "name": "Madagascar",
+      "countryCode": "261",
+      "patterns": [
+        "XX XX XXX XX"
+      ]
+    },
+    {
+      "iso2": "MW",
+      "defaultName": "Malawi",
+      "name": "Malawi",
+      "countryCode": "265",
+      "patterns": [
+        "77 XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MY",
+      "defaultName": "Malaysia",
+      "name": "Malaysia",
+      "countryCode": "60",
+      "patterns": []
+    },
+    {
+      "iso2": "MV",
+      "defaultName": "Maldives",
+      "name": "Maldives",
+      "countryCode": "960",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "ML",
+      "defaultName": "Mali",
+      "name": "Mali",
+      "countryCode": "223",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MT",
+      "defaultName": "Malta",
+      "name": "Malta",
+      "countryCode": "356",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "MH",
+      "defaultName": "Marshall Islands",
+      "name": "Marshall Islands",
+      "countryCode": "692",
+      "patterns": []
+    },
+    {
+      "iso2": "MQ",
+      "defaultName": "Martinique",
+      "name": "Martinique",
+      "countryCode": "596",
+      "patterns": []
+    },
+    {
+      "iso2": "MR",
+      "defaultName": "Mauritania",
+      "name": "Mauritania",
+      "countryCode": "222",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MU",
+      "defaultName": "Mauritius",
+      "name": "Mauritius",
+      "countryCode": "230",
+      "patterns": []
+    },
+    {
+      "iso2": "MX",
+      "defaultName": "Mexico",
+      "name": "Mexico",
+      "countryCode": "52",
+      "patterns": []
+    },
+    {
+      "iso2": "FM",
+      "defaultName": "Micronesia",
+      "name": "Micronesia",
+      "countryCode": "691",
+      "patterns": []
+    },
+    {
+      "iso2": "MD",
+      "defaultName": "Moldova",
+      "name": "Moldova",
+      "countryCode": "373",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "MC",
+      "defaultName": "Monaco",
+      "name": "Monaco",
+      "countryCode": "377",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MN",
+      "defaultName": "Mongolia",
+      "name": "Mongolia",
+      "countryCode": "976",
+      "patterns": [
+        "XX XX XXXX"
+      ]
+    },
+    {
+      "iso2": "ME",
+      "defaultName": "Montenegro",
+      "name": "Montenegro",
+      "countryCode": "382",
+      "patterns": []
+    },
+    {
+      "iso2": "MS",
+      "defaultName": "Montserrat",
+      "name": "Montserrat",
+      "countryCode": "1664",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MA",
+      "defaultName": "Morocco",
+      "name": "Morocco",
+      "countryCode": "212",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MZ",
+      "defaultName": "Mozambique",
+      "name": "Mozambique",
+      "countryCode": "258",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "MM",
+      "defaultName": "Myanmar",
+      "name": "Myanmar",
+      "countryCode": "95",
+      "patterns": []
+    },
+    {
+      "iso2": "NA",
+      "defaultName": "Namibia",
+      "name": "Namibia",
+      "countryCode": "264",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NR",
+      "defaultName": "Nauru",
+      "name": "Nauru",
+      "countryCode": "674",
+      "patterns": []
+    },
+    {
+      "iso2": "NP",
+      "defaultName": "Nepal",
+      "name": "Nepal",
+      "countryCode": "977",
+      "patterns": [
+        "XX XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NL",
+      "defaultName": "Netherlands",
+      "name": "Netherlands",
+      "countryCode": "31",
+      "patterns": [
+        "X XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "NC",
+      "defaultName": "New Caledonia",
+      "name": "New Caledonia",
+      "countryCode": "687",
+      "patterns": []
+    },
+    {
+      "iso2": "NZ",
+      "defaultName": "New Zealand",
+      "name": "New Zealand",
+      "countryCode": "64",
+      "patterns": []
+    },
+    {
+      "iso2": "NI",
+      "defaultName": "Nicaragua",
+      "name": "Nicaragua",
+      "countryCode": "505",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NE",
+      "defaultName": "Niger",
+      "name": "Niger",
+      "countryCode": "227",
+      "patterns": [
+        "XX XX XX XX"
+      ]
+    },
+    {
+      "iso2": "NG",
+      "defaultName": "Nigeria",
+      "name": "Nigeria",
+      "countryCode": "234",
+      "patterns": []
+    },
+    {
+      "iso2": "NU",
+      "defaultName": "Niue",
+      "name": "Niue",
+      "countryCode": "683",
+      "patterns": []
+    },
+    {
+      "iso2": "NF",
+      "defaultName": "Norfolk Island",
+      "name": "Norfolk Island",
+      "countryCode": "672",
+      "patterns": []
+    },
+    {
+      "iso2": "KP",
+      "defaultName": "North Korea",
+      "name": "North Korea",
+      "countryCode": "850",
+      "patterns": []
+    },
+    {
+      "iso2": "MP",
+      "defaultName": "Northern Mariana Islands",
+      "name": "Northern Mariana Islands",
+      "countryCode": "1670",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "NO",
+      "defaultName": "Norway",
+      "name": "Norway",
+      "countryCode": "47",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "OM",
+      "defaultName": "Oman",
+      "name": "Oman",
+      "countryCode": "968",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PK",
+      "defaultName": "Pakistan",
+      "name": "Pakistan",
+      "countryCode": "92",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PW",
+      "defaultName": "Palau",
+      "name": "Palau",
+      "countryCode": "680",
+      "patterns": []
+    },
+    {
+      "iso2": "PS",
+      "defaultName": "Palestine",
+      "name": "Palestine",
+      "countryCode": "970",
+      "patterns": [
+        "XXX XX XXXX"
+      ]
+    },
+    {
+      "iso2": "PA",
+      "defaultName": "Panama",
+      "name": "Panama",
+      "countryCode": "507",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PG",
+      "defaultName": "Papua New Guinea",
+      "name": "Papua New Guinea",
+      "countryCode": "675",
+      "patterns": []
+    },
+    {
+      "iso2": "PY",
+      "defaultName": "Paraguay",
+      "name": "Paraguay",
+      "countryCode": "595",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "PE",
+      "defaultName": "Peru",
+      "name": "Peru",
+      "countryCode": "51",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "PH",
+      "defaultName": "Philippines",
+      "name": "Philippines",
+      "countryCode": "63",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PL",
+      "defaultName": "Poland",
+      "name": "Poland",
+      "countryCode": "48",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "PT",
+      "defaultName": "Portugal",
+      "name": "Portugal",
+      "countryCode": "351",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PR",
+      "defaultName": "Puerto Rico",
+      "name": "Puerto Rico",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "QA",
+      "defaultName": "Qatar",
+      "name": "Qatar",
+      "countryCode": "974",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "RO",
+      "defaultName": "Romania",
+      "name": "Romania",
+      "countryCode": "40",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "RU",
+      "defaultName": "Russian Federation",
+      "name": "Russian Federation",
+      "countryCode": "7",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "RW",
+      "defaultName": "Rwanda",
+      "name": "Rwanda",
+      "countryCode": "250",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "RE",
+      "defaultName": "Réunion",
+      "name": "Réunion",
+      "countryCode": "262",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SH",
+      "defaultName": "Saint Helena",
+      "name": "Saint Helena",
+      "countryCode": "290",
+      "patterns": [
+        "XX XXX"
+      ]
+    },
+    {
+      "iso2": "KN",
+      "defaultName": "Saint Kitts & Nevis",
+      "name": "Saint Kitts & Nevis",
+      "countryCode": "1869",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "LC",
+      "defaultName": "Saint Lucia",
+      "name": "Saint Lucia",
+      "countryCode": "1758",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "PM",
+      "defaultName": "Saint Pierre & Miquelon",
+      "name": "Saint Pierre & Miquelon",
+      "countryCode": "508",
+      "patterns": []
+    },
+    {
+      "iso2": "VC",
+      "defaultName": "Saint Vincent & the Grenadines",
+      "name": "Saint Vincent & the Grenadines",
+      "countryCode": "1784",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "WS",
+      "defaultName": "Samoa",
+      "name": "Samoa",
+      "countryCode": "685",
+      "patterns": []
+    },
+    {
+      "iso2": "SM",
+      "defaultName": "San Marino",
+      "name": "San Marino",
+      "countryCode": "378",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SA",
+      "defaultName": "Saudi Arabia",
+      "name": "Saudi Arabia",
+      "countryCode": "966",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SN",
+      "defaultName": "Senegal",
+      "name": "Senegal",
+      "countryCode": "221",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "RS",
+      "defaultName": "Serbia",
+      "name": "Serbia",
+      "countryCode": "381",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SC",
+      "defaultName": "Seychelles",
+      "name": "Seychelles",
+      "countryCode": "248",
+      "patterns": [
+        "X XX XX XX"
+      ]
+    },
+    {
+      "iso2": "SL",
+      "defaultName": "Sierra Leone",
+      "name": "Sierra Leone",
+      "countryCode": "232",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SG",
+      "defaultName": "Singapore",
+      "name": "Singapore",
+      "countryCode": "65",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SX",
+      "defaultName": "Sint Maarten",
+      "name": "Sint Maarten",
+      "countryCode": "1721",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SK",
+      "defaultName": "Slovakia",
+      "name": "Slovakia",
+      "countryCode": "421",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SI",
+      "defaultName": "Slovenia",
+      "name": "Slovenia",
+      "countryCode": "386",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "SB",
+      "defaultName": "Solomon Islands",
+      "name": "Solomon Islands",
+      "countryCode": "677",
+      "patterns": []
+    },
+    {
+      "iso2": "SO",
+      "defaultName": "Somalia",
+      "name": "Somalia",
+      "countryCode": "252",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ZA",
+      "defaultName": "South Africa",
+      "name": "South Africa",
+      "countryCode": "27",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "KR",
+      "defaultName": "South Korea",
+      "name": "South Korea",
+      "countryCode": "82",
+      "patterns": []
+    },
+    {
+      "iso2": "SS",
+      "defaultName": "South Sudan",
+      "name": "South Sudan",
+      "countryCode": "211",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "ES",
+      "defaultName": "Spain",
+      "name": "Spain",
+      "countryCode": "34",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "LK",
+      "defaultName": "Sri Lanka",
+      "name": "Sri Lanka",
+      "countryCode": "94",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SD",
+      "defaultName": "Sudan",
+      "name": "Sudan",
+      "countryCode": "249",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SR",
+      "defaultName": "Suriname",
+      "name": "Suriname",
+      "countryCode": "597",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SZ",
+      "defaultName": "Swaziland",
+      "name": "Swaziland",
+      "countryCode": "268",
+      "patterns": [
+        "XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SE",
+      "defaultName": "Sweden",
+      "name": "Sweden",
+      "countryCode": "46",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "CH",
+      "defaultName": "Switzerland",
+      "name": "Switzerland",
+      "countryCode": "41",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "SY",
+      "defaultName": "Syria",
+      "name": "Syria",
+      "countryCode": "963",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ST",
+      "defaultName": "São Tomé & Príncipe",
+      "name": "São Tomé & Príncipe",
+      "countryCode": "239",
+      "patterns": [
+        "XX XXXXX"
+      ]
+    },
+    {
+      "iso2": "TW",
+      "defaultName": "Taiwan",
+      "name": "Taiwan",
+      "countryCode": "886",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "TJ",
+      "defaultName": "Tajikistan",
+      "name": "Tajikistan",
+      "countryCode": "992",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TZ",
+      "defaultName": "Tanzania",
+      "name": "Tanzania",
+      "countryCode": "255",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TH",
+      "defaultName": "Thailand",
+      "name": "Thailand",
+      "countryCode": "66",
+      "patterns": [
+        "X XXXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TL",
+      "defaultName": "Timor-Leste",
+      "name": "Timor-Leste",
+      "countryCode": "670",
+      "patterns": []
+    },
+    {
+      "iso2": "TG",
+      "defaultName": "Togo",
+      "name": "Togo",
+      "countryCode": "228",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "TK",
+      "defaultName": "Tokelau",
+      "name": "Tokelau",
+      "countryCode": "690",
+      "patterns": []
+    },
+    {
+      "iso2": "TO",
+      "defaultName": "Tonga",
+      "name": "Tonga",
+      "countryCode": "676",
+      "patterns": []
+    },
+    {
+      "iso2": "TT",
+      "defaultName": "Trinidad & Tobago",
+      "name": "Trinidad & Tobago",
+      "countryCode": "1868",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TN",
+      "defaultName": "Tunisia",
+      "name": "Tunisia",
+      "countryCode": "216",
+      "patterns": [
+        "XX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "TR",
+      "defaultName": "Turkey",
+      "name": "Turkey",
+      "countryCode": "90",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TM",
+      "defaultName": "Turkmenistan",
+      "name": "Turkmenistan",
+      "countryCode": "993",
+      "patterns": [
+        "XX XXXXXX"
+      ]
+    },
+    {
+      "iso2": "TC",
+      "defaultName": "Turks & Caicos Islands",
+      "name": "Turks & Caicos Islands",
+      "countryCode": "1649",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "TV",
+      "defaultName": "Tuvalu",
+      "name": "Tuvalu",
+      "countryCode": "688",
+      "patterns": []
+    },
+    {
+      "iso2": "VI",
+      "defaultName": "US Virgin Islands",
+      "name": "US Virgin Islands",
+      "countryCode": "1340",
+      "patterns": [
+        "XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "US",
+      "defaultName": "USA",
+      "name": "USA",
+      "countryCode": "1",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "UG",
+      "defaultName": "Uganda",
+      "name": "Uganda",
+      "countryCode": "256",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "UA",
+      "defaultName": "Ukraine",
+      "name": "Ukraine",
+      "countryCode": "380",
+      "patterns": [
+        "XX XXX XX XX"
+      ]
+    },
+    {
+      "iso2": "AE",
+      "defaultName": "United Arab Emirates",
+      "name": "United Arab Emirates",
+      "countryCode": "971",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "GB",
+      "defaultName": "United Kingdom",
+      "name": "United Kingdom",
+      "countryCode": "44",
+      "patterns": [
+        "XXXX XXXXXX"
+      ]
+    },
+    {
+      "iso2": "UY",
+      "defaultName": "Uruguay",
+      "name": "Uruguay",
+      "countryCode": "598",
+      "patterns": [
+        "X XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "UZ",
+      "defaultName": "Uzbekistan",
+      "name": "Uzbekistan",
+      "countryCode": "998",
+      "patterns": [
+        "XX XXXXXXX"
+      ]
+    },
+    {
+      "iso2": "VU",
+      "defaultName": "Vanuatu",
+      "name": "Vanuatu",
+      "countryCode": "678",
+      "patterns": []
+    },
+    {
+      "iso2": "VE",
+      "defaultName": "Venezuela",
+      "name": "Venezuela",
+      "countryCode": "58",
+      "patterns": [
+        "XXX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "VN",
+      "defaultName": "Vietnam",
+      "name": "Vietnam",
+      "countryCode": "84",
+      "patterns": []
+    },
+    {
+      "iso2": "WF",
+      "defaultName": "Wallis & Futuna",
+      "name": "Wallis & Futuna",
+      "countryCode": "681",
+      "patterns": []
+    },
+    {
+      "iso2": "YL",
+      "defaultName": "Y-land",
+      "name": "Y-land",
+      "countryCode": "42",
+      "patterns": []
+    },
+    {
+      "iso2": "YE",
+      "defaultName": "Yemen",
+      "name": "Yemen",
+      "countryCode": "967",
+      "patterns": [
+        "XXX XXX XXX"
+      ]
+    },
+    {
+      "iso2": "ZM",
+      "defaultName": "Zambia",
+      "name": "Zambia",
+      "countryCode": "260",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    },
+    {
+      "iso2": "ZW",
+      "defaultName": "Zimbabwe",
+      "name": "Zimbabwe",
+      "countryCode": "263",
+      "patterns": [
+        "XX XXX XXXX"
+      ]
+    }
+  ]
+}

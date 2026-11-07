@@ -1,0 +1,209 @@
+[
+ {
+  "name": "wallet gate, Earn tab, DeFi tab bar",
+  "file": "static/js/30734.8d02930635.js",
+  "why": "gate around the app root; Earn shows without campaigns; the chain wallet tab bar chunks stay unloaded",
+  "guard": true,
+  "edits": [
+   {
+    "old": "(0,l.jsx)(Et,{children:(0,l.jsx)(r.sv,{})})",
+    "new": "(0,l.jsx)(Et,{children:(0,l.jsx)(window.GreengramWalletGate,{children:(0,l.jsx)(r.sv,{})})})"
+   },
+   {
+    "old": "H=!r&&Boolean(z||V||M?.campaigns.length)",
+    "new": "H=!r"
+   },
+   {
+    "old": "const H=(0,m.lazy)(()=>Promise.all([n.e(25786,\"high\"),n.e(54789,\"high\"),n.e(51050,\"high\"),n.e(80692,\"high\"),n.e(26164,\"high\"),n.e(28173,\"high\"),n.e(56135,\"high\"),n.e(13592,\"high\"),n.e(49671,\"high\")]).then(()=>n(689852)).then(e=>({default:e.ScwTabsContent})));",
+    "new": "const H=window.GreengramScwTabs;"
+   }
+  ]
+ },
+ {
+  "name": "passcode screens",
+  "file": "static/js/16761.6b8cd76fa1.js",
+  "why": "no recovery email here: no email step, no reset link, no reset on lockout",
+  "guard": true,
+  "edits": [
+   {
+    "old": "if(!1===Q){Se(\"Wallet. Safety. Passcode. Confirm\"",
+    "new": "if(!0){Se(\"Wallet. Safety. Passcode. Confirm\""
+   },
+   {
+    "old": "C=(0,O.jsx)(F.E,{apple:_,material:x,align:\"center\",children:S})",
+    "new": "C=null"
+   },
+   {
+    "old": "R=(0,O.jsx)(F.E,{className:T,apple:q,material:P,align:\"center\",children:B})",
+    "new": "R=null"
+   },
+   {
+    "old": "ue=(0,x.jsx)(R.X,{appearance:\"action\",onClick:le,children:de})",
+    "new": "ue=null"
+   },
+   {
+    "old": "{title:H(\"passcode.verify.attempts_overflow_popup.title\"),message:H(\"passcode.verify.attempts_overflow_popup.text\"),buttons:[{text:H(\"common.cancel\"),id:\"cancel\"},{text:H(\"passcode.verify.attempts_overflow_popup.reset\"),id:\"reset\"}]}",
+    "new": "{message:H(\"common.request_limit_exceeded\"),buttons:[{text:H(\"common.ok\"),id:\"cancel\"}]}"
+   }
+  ]
+ },
+ {
+  "name": "passcode settings page",
+  "file": "static/js/95126.cb119f7d89.js",
+  "why": "the note and the row both promise a recovery email",
+  "guard": true,
+  "edits": [
+   {
+    "old": "description:f(\"passcode.settings.forgot_and_recovery\"),",
+    "new": ""
+   },
+   {
+    "old": "!0===t&&(0,y.jsx)(x.A,{onClick:()=>{K()}",
+    "new": "!1&&(0,y.jsx)(x.A,{onClick:()=>{K()}"
+   }
+  ]
+ },
+ {
+  "name": "home DeFi cell",
+  "file": "static/js/72180.61cc28b727.js",
+  "why": "see GreengramDefiTile; filled icons for the home row",
+  "edits": [
+   {
+    "old": "{balance:n,withoutDescription:r,chevron:s,onClick:o}=e,",
+    "new": "{withoutDescription:r,chevron:s,onClick:o}=e,n=window.GreengramDefiTile(e.balance),"
+   },
+   {
+    "old": "icon:\"material\"===h?s??t:t,",
+    "new": "icon:t,"
+   }
+  ]
+ },
+ {
+  "name": "send page",
+  "file": "static/js/77259.8c21b91ca7.js",
+  "why": "the balance row instead of the Get GRAM link and asset chip; the confirmation sheet is the next step, so nothing is sent from here",
+  "edits": [
+   {
+    "old": "un=je?void 0:(0,Q.jsx)(ne.$,{assetCurrency:Be,assetBalance:De,onDepositClick:ze,onUseMax:Fe.handleUseMaxAmount})",
+    "new": "un=void 0"
+   },
+   {
+    "old": "(0,Q.jsx)(f.J,{currency:Be,text:a(\"send.transfer_chip\",{currency:(0,R.Zt)({currency:Be,t:a})}),onClick:$e.open})",
+    "new": "(0,Q.jsx)(window.GreengramSendBalance,{currency:Be,balance:De,onChoose:$e.open,onMax:Fe.handleUseMaxAmount,onDeposit:ze})"
+   },
+   {
+    "old": "onClick:dn,showMainButton:Boolean(qe)})",
+    "new": "onClick:dn,showMainButton:Boolean(qe),submitText:je?void 0:a(\"common.continue\")})"
+   }
+  ]
+ },
+ {
+  "name": "transfer confirmation sheet",
+  "file": "static/js/63691.c4ced57189.js",
+  "why": "full height",
+  "edits": [
+   {
+    "old": "style:{height:\"var(--min-viewport-height)\"}",
+    "new": "style:{height:f===\"greengram-transfer-confirmation\"?\"100%\":\"var(--min-viewport-height)\"}"
+   }
+  ]
+ },
+ {
+  "name": "recipient avatar",
+  "file": "static/js/99772.857e9e908d.js",
+  "why": "recipients have no Telegram photo URL; draw the initials avatar",
+  "edits": [
+   {
+    "old": "350588(e,t,r){",
+    "new": "350588(e,t,r){const greengramRecipientAvatar=r(223926).E;"
+   },
+   {
+    "old": "(0,z.jsx)(f.A,{size:18,src:N?.photo_url})",
+    "new": "(0,z.jsx)(greengramRecipientAvatar,{size:18,photoUrl:N?.photo_url,name:V})"
+   }
+  ]
+ },
+ {
+  "name": "receive currency list",
+  "file": "static/js/59254.af8717bf1a.js",
+  "why": "no Your tokens group",
+  "edits": [
+   {
+    "old": "children:[k&&",
+    "new": "children:[!1&&"
+   }
+  ]
+ },
+ {
+  "name": "receive list corners",
+  "file": "static/css/59254.58ecdb5926.css",
+  "why": "rounded list",
+  "edits": [
+   {
+    "old": ".lIhZN{position:relative;width:100%}",
+    "new": ".lIhZN{position:relative;width:100%;border-radius:var(--border-radius-regular);overflow:hidden}"
+   }
+  ]
+ },
+ {
+  "name": "exchange amount compare",
+  "file": "static/js/42932.52e9875ce4.js",
+  "why": "amounts come back as strings; compare them as decimals",
+  "edits": [
+   {
+    "old": "Ue.from_amount===Ee",
+    "new": "(0,c.default)(Ue.from_amount).eq(Ee)"
+   },
+   {
+    "old": "Ue.to_amount===Se",
+    "new": "(0,c.default)(Ue.to_amount).eq(Se)"
+   }
+  ]
+ },
+ {
+  "name": "exchange amount precision",
+  "file": "static/js/6105.ff7d5172fd.js",
+  "why": "send amounts as exact decimals, not floats",
+  "edits": [
+   {
+    "old": "to_amount:(0,s.default)(a).toNumber()",
+    "new": "to_amount:(0,s.default)(a).toFixed()"
+   },
+   {
+    "old": "from_amount:(0,s.default)(r).toNumber()",
+    "new": "from_amount:(0,s.default)(r).toFixed()",
+    "count": 2
+   }
+  ]
+ },
+ {
+  "name": "failed chart",
+  "file": "static/js/49603.fee135ee76.js",
+  "why": "a chart that failed to load stops spinning",
+  "edits": [
+   {
+    "old": "{data:e,isLoading:!0,isError:l}",
+    "new": "{data:e,isLoading:!l,isError:l}"
+   },
+   {
+    "old": "pe=V||k||null==$||0===$.length;",
+    "new": "pe=!Z&&(V||k||null==$||0===$.length);"
+   }
+  ]
+ },
+ {
+  "name": "settings rows",
+  "file": "static/js/6362.beb4b44858.js",
+  "why": "My Stars and Connected apps live on the DeFi tab in the real app; nothing here checks identity",
+  "edits": [
+   {
+    "old": "children:(0,v.jsx)(m.f.Text,{title:b(\"settings.default_currency\")})}),",
+    "new": "children:(0,v.jsx)(m.f.Text,{title:b(\"settings.default_currency\")})}),window.GreengramWalletRows&&(0,v.jsx)(window.GreengramWalletRows,{chevron:ee}),"
+   },
+   {
+    "old": "se=X&&(0,v.jsx)(m.f,{chevron:B,tappable:!0,onClick:()=>{P(\"Wallet. Settings. KYC level\"",
+    "new": "se=!1&&(0,v.jsx)(m.f,{chevron:B,tappable:!0,onClick:()=>{P(\"Wallet. Settings. KYC level\""
+   }
+  ]
+ }
+]

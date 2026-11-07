@@ -1,0 +1,8 @@
+# gitleaks: the default rules, minus the fixed test vectors (a fake key
+# 0123..., password hashes of "correct horse battery") the crypto tests use.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "test vectors"
+paths = ['''^internal/(password|secret)/testdata/web\.json$''']

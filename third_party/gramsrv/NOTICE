@@ -1,0 +1,27 @@
+gramsrv
+https://github.com/iamxvbaba/gramsrv
+Licensed under the Apache License, Version 2.0 (see LICENSE in this folder).
+
+Greengram reads gramsrv as a reference and writes its own code. Any file
+copied from it keeps its original copyright line and carries a
+"changed by Greengram" note describing the changes. Those files stay under
+Apache-2.0; the combined work is distributed under AGPL-3.0.
+
+Copied files:
+- internal/botapi/formatted_text.go, from internal/botapi/formatted_text.go:
+  Bot API parse_mode (HTML, Markdown, MarkdownV2) parsing. gramsrv's domain
+  entity types swapped for local ones.
+
+Copied data:
+- internal/api/peercolors.json, from internal/seed/appearance/
+  default_appearance_seed.json (peer_colors, peer_profile_colors): Telegram's
+  name and profile color palettes. Changed by Greengram: trimmed to the
+  fields help.getPeerColors needs.
+- internal/api/timezones.json, from internal/seed/catalog/timezones.json:
+  Telegram's help.getTimezonesList answer (zone ids, names, UTC offsets).
+  Unchanged.
+
+The language packs langpack.* serves are not in this repository. They are
+Telegram's translations as gramsrv redistributes them (data/langpack, commit
+0dcf3eb); scripts/langpacks.py builds the directory from a gramsrv checkout,
+see docs/languages.md.

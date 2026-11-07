@@ -1,0 +1,11 @@
+"SettingsAccountDesc" = "Имя пользователя, о себе, день рождения";
+"SettingsGeneralDesc" = "Обои, тема, клавиатура";
+"SettingsPrivacyDesc" = "Последняя активность, пароль, чёрный список";
+"SettingsDataDesc" = "Загрузка медиа, кэш";
+"SettingsPerformanceDesc" = "Анимации, переходы, автовоспроизведение";
+"SettingsStickersDesc" = "Стикеры, эмодзи, реакции";
+"SettingsLanguageDesc" = "{language}, перевод сообщений";
+"SettingsSessionsDesc" = "Сеансы, автоматическое завершение";
+"ActionWalletTransferText" = "{from} отправляет вам {amount}";
+"ActionWalletTransferTextYou" = "Вы отправили {amount}";
+"ActionWalletTransferDescription" = "Отправлено через Кошелёк. Нажмите, чтобы открыть.";

@@ -1,0 +1,3317 @@
+diff --git a/src/api/gramjs/apiBuilders/messageContent.ts b/src/api/gramjs/apiBuilders/messageContent.ts
+index fddbdfa2..87626bcf 100644
+--- a/src/api/gramjs/apiBuilders/messageContent.ts
++++ b/src/api/gramjs/apiBuilders/messageContent.ts
+@@ -548,7 +548,7 @@ function buildGiveawayResultsFromMedia(media: GramJs.TypeMessageMedia): ApiGivea
+ function buildGiveawayResults(media: GramJs.MessageMediaGiveawayResults): ApiGiveawayResults | undefined {
+   const {
+     months, untilDate, onlyNewSubscribers, launchMsgId, unclaimedCount, winners, winnersCount,
+-    additionalPeersCount, prizeDescription, refunded, channelId,
++    additionalPeersCount, prizeDescription, refunded, channelId, stars,
+   } = media;
+ 
+   const winnerIds = winners.map((winner) => buildApiPeerId(winner, 'user'));
+@@ -556,6 +556,8 @@ function buildGiveawayResults(media: GramJs.MessageMediaGiveawayResults): ApiGiv
+   return {
+     mediaType: 'giveawayResults',
+     months,
++    // Greengram: upstream drops it, and a Stars giveaway's info sheet then reads as Premium
++    stars: toJSNumber(stars),
+     untilDate,
+     isOnlyForNewSubscribers: onlyNewSubscribers,
+     launchMessageId: launchMsgId,
+diff --git a/src/api/gramjs/gramjsBuilders/index.ts b/src/api/gramjs/gramjsBuilders/index.ts
+index 179e27b4..5121dbcf 100644
+--- a/src/api/gramjs/gramjsBuilders/index.ts
++++ b/src/api/gramjs/gramjsBuilders/index.ts
+@@ -1126,6 +1126,11 @@ export function buildInputPrivacyRules(
+         privacyRules.push(new GramJs.InputPrivacyValueAllowContacts());
+         break;
+ 
++      // Greengram: story settings offer it, upstream only reads it back
++      case 'closeFriends':
++        privacyRules.push(new GramJs.InputPrivacyValueAllowCloseFriends());
++        break;
++
+       case 'nonContacts':
+         privacyRules.push(new GramJs.InputPrivacyValueDisallowContacts());
+         break;
+diff --git a/src/api/gramjs/methods/chats.ts b/src/api/gramjs/methods/chats.ts
+index ac18da6c..d1da0c9c 100644
+--- a/src/api/gramjs/methods/chats.ts
++++ b/src/api/gramjs/methods/chats.ts
+@@ -1159,7 +1159,7 @@ export async function createGroupChat({
+   const missingUsers = invitedUsers.missingInvitees.map(buildApiMissingInvitedUser);
+ 
+   const newChat = (invitedUsers.updates as GramJs.Updates).chats[0];
+-  if (!newChat || !(newChat instanceof GramJs.Chat)) {
++  if (!newChat || !(newChat instanceof GramJs.Chat || newChat instanceof GramJs.Channel)) {
+     if (DEBUG) {
+       // eslint-disable-next-line no-console
+       console.error('Created chat not found', invitedUsers.updates);
+diff --git a/src/api/gramjs/methods/client.ts b/src/api/gramjs/methods/client.ts
+index 47b09a1c..e1c62c4c 100644
+--- a/src/api/gramjs/methods/client.ts
++++ b/src/api/gramjs/methods/client.ts
+@@ -8,6 +8,7 @@ import type { TwoFaParams } from '../../../lib/gramjs/client/2fa';
+ import TelegramClient from '../../../lib/gramjs/client/TelegramClient';
+ import { RPCError } from '../../../lib/gramjs/errors';
+ import { Logger as GramJsLogger } from '../../../lib/gramjs/extensions/index';
++import { isBorrowedGreengramSession, loadGreengramInstance } from '../../../lib/gramjs/greengram';
+ 
+ import type { ThreadId } from '../../../types';
+ import type {
+@@ -106,7 +107,24 @@ export async function init(initialArgs: ApiInitialArgs, onConnected?: NoneToVoid
+     hasPasskeySupport, webAuthUserId,
+   } = initialArgs;
+ 
+-  const session = new sessions.CallbackSession(sessionData, onSessionUpdate);
++  // Greengram: the instance's RSA key and DC, before anything connects
++  let greengramDc: number | undefined;
++  try {
++    greengramDc = (await loadGreengramInstance()).dc;
++  } catch (err) {
++    // eslint-disable-next-line no-console
++    console.error(err);
++    sendApiUpdate({
++      '@type': 'updateConnectionState',
++      connectionState: 'connectionStateBroken',
++    });
++    return;
++  }
++
++  // a session the old server left points at its DC 1: start over, the web
++  // token signs it back in
++  const stale = sessionData && greengramDc && sessionData.mainDcId !== greengramDc;
++  const session = new sessions.CallbackSession(stale ? undefined : sessionData, onSessionUpdate);
+ 
+   (self as any).isWebmSupported = isWebmSupported;
+ 
+@@ -123,9 +141,11 @@ export async function init(initialArgs: ApiInitialArgs, onConnected?: NoneToVoid
+       useWSS: true,
+       additionalDcsDisabled: IS_TEST,
+       shouldDebugExportedSenders,
+-      shouldForceHttpTransport,
+-      shouldAllowHttpTransport,
+-      dcId,
++      // the server only speaks WebSocket; the HTTP fallback got 405 and
++      // left the tab retrying until a reload
++      shouldForceHttpTransport: false,
++      shouldAllowHttpTransport: false,
++      dcId: dcId || greengramDc,
+       langPack: LANG_PACK,
+       langCode,
+       systemLangCode: navigator.language,
+@@ -204,7 +224,7 @@ export function setIsPremium({ isPremium }: { isPremium: boolean }) {
+ 
+ const LOG_OUT_TIMEOUT = 2500;
+ export async function destroy(noLogOut = false, noClearLocalDb = false) {
+-  if (!noLogOut && client.isConnected()) {
++  if (!noLogOut && client.isConnected() && !await isBorrowedGreengramSession(currentUserId)) {
+     await Promise.race([
+       invokeRequest(new GramJs.auth.LogOut()),
+       pause(LOG_OUT_TIMEOUT),
+@@ -719,11 +739,13 @@ export async function repairWebPageMedia(url: string) {
+ }
+ 
+ export function setForceHttpTransport(forceHttpTransport: boolean) {
+-  client.setForceHttpTransport(forceHttpTransport);
++  client.setForceHttpTransport(false); // WebSocket only, see init
++  void forceHttpTransport;
+ }
+ 
+ export function setAllowHttpTransport(allowHttpTransport: boolean) {
+-  client.setAllowHttpTransport(allowHttpTransport);
++  client.setAllowHttpTransport(false);
++  void allowHttpTransport;
+ }
+ 
+ export function setShouldDebugExportedSenders(value: boolean) {
+diff --git a/src/api/types/messages.ts b/src/api/types/messages.ts
+index ac9e529b..31456e93 100644
+--- a/src/api/types/messages.ts
++++ b/src/api/types/messages.ts
+@@ -1131,6 +1131,7 @@ export type ApiThemeParameters = {
+   subtitle_text_color: string;
+   destructive_text_color: string;
+   section_separator_color: string;
++  bottom_bar_bg_color: string;
+ };
+ 
+ export type ApiBotApp = {
+diff --git a/src/assets/localization/fallback.strings b/src/assets/localization/fallback.strings
+index 085994f9..b653d7c6 100644
+--- a/src/assets/localization/fallback.strings
++++ b/src/assets/localization/fallback.strings
+@@ -712,7 +712,7 @@
+ "ForwardForStars" = "Forward for {price}";
+ "MediaZoomOut" = "Zoom Out";
+ "MediaZoomIn" = "Zoom In";
+-"PeerInfoReportProfileVideo" = "Report Profile Photo";
++"PeerInfoReportProfileVideo" = "Report Profile Video";
+ "PeerInfoReportProfilePhoto" = "Report Profile Photo";
+ "MediaviewProfilePhoto" = "Profile Photo";
+ "AccActionPlay" = "Play";
+@@ -4511,3 +4511,9 @@
+ "SettingsKeywordsLastSeen" = "online, last seen, status";
+ "SettingsKeywordsLogOut" = "log out, sign out, exit";
+ "SettingsSearchEmpty" = "Start typing to find a setting";
++"ActionWalletTransferText" = "{from} sent you {amount}";
++"ActionWalletTransferTextYou" = "You sent {amount}";
++"ActionWalletTransferDescription" = "Sent with Wallet. Tap to open it.";
++"WalletRecipientEmpty" = "Type a username to find someone";
++"WalletRecipientNotFound" = "Nobody found. Only people can receive transfers";
++"GiftInfoIssuedUnlimited" = "{issued} issued";
+diff --git a/src/components/App.tsx b/src/components/App.tsx
+index 4dca0ab1..88e213ae 100644
+--- a/src/components/App.tsx
++++ b/src/components/App.tsx
+@@ -187,11 +187,13 @@ const App = ({
+     activeKey = AppScreens.auth;
+   }
+ 
++  // Greengram: sign-in happens on the instance's /login page, and the
++  // worker sends a signed-out browser there (see onUpdateAuthorizationState).
++  // The QR screen only ever flashed while the session cookie was being
++  // turned into an auth key, so show the loading main screen instead.
+   if (activeKey !== AppScreens.lock
+     && activeKey !== AppScreens.inactive
+-    && activeKey !== AppScreens.main
+-    && getPendingWebLogin()
+-    && !hasWebAuthTokenFailed) {
++    && activeKey !== AppScreens.main) {
+     page = 'main';
+     activeKey = AppScreens.main;
+   }
+diff --git a/src/components/common/Composer.tsx b/src/components/common/Composer.tsx
+index 3eda127f..c54d39be 100644
+--- a/src/components/common/Composer.tsx
++++ b/src/components/common/Composer.tsx
+@@ -3046,7 +3046,9 @@ const Composer = ({
+                 slideClassName="composer-action-buttons"
+                 activeKey={Number(hasInputContent)}
+                 direction="inverse"
+-                name="slideFadeAndroid"
++                // Greengram: Firefox never fires animationend here, so every
++                // send held message rendering for the 1s fallback
++                name="none"
+               >
+                 {!hasInputContent && (
+                   <>
+diff --git a/src/components/common/RecipientPicker.tsx b/src/components/common/RecipientPicker.tsx
+index a9f6c692..d265d7b9 100644
+--- a/src/components/common/RecipientPicker.tsx
++++ b/src/components/common/RecipientPicker.tsx
+@@ -62,6 +62,12 @@ export type OwnProps = {
+   footer?: TeactNode;
+   viewportFooter?: TeactNode;
+   loadMore?: NoneToVoidFunction;
++  // Greengram: the wallet picker offers only people who can receive a transfer
++  peerFilter?: (id: string) => boolean;
++  // Greengram: server search hits for the current query, drawn after the local ones
++  extraSearchIds?: string[];
++  noResultsText?: string;
++  onSearchChange?: (search: string) => void;
+   onSelectRecipient: (peerId: string, threadId?: ThreadId) => void;
+   onSelectedIdsChange?: (ids: ChatSelectionKey[]) => void;
+   onClose: NoneToVoidFunction;
+@@ -106,6 +112,10 @@ const RecipientPicker = ({
+   footer,
+   viewportFooter,
+   loadMore,
++  peerFilter,
++  extraSearchIds,
++  noResultsText,
++  onSearchChange,
+   onSelectRecipient,
+   onSelectedIdsChange,
+   onClose,
+@@ -219,7 +229,8 @@ const RecipientPicker = ({
+       currentUserId,
+     );
+ 
+-    return filterChatIdsByType(global, sorted, filter);
++    const typed = filterChatIdsByType(global, extraSearchIds ? unique([...sorted, ...extraSearchIds]) : sorted, filter);
++    return peerFilter ? typed.filter(peerFilter) : typed;
+   }, [
+     isOpen,
+     pinnedIds,
+@@ -233,6 +244,8 @@ const RecipientPicker = ({
+     shouldFilterInviteable,
+     orderedChatIds,
+     shouldRenderFolders,
++    peerFilter,
++    extraSearchIds,
+   ]);
+ 
+   const renderingIds = useCurrentOrPrev(ids, true);
+@@ -241,8 +254,17 @@ const RecipientPicker = ({
+     const global = getGlobal();
+     const source = topPeerIds?.length ? topPeerIds : (contactIds || []);
+     const allowed = source.filter((id) => getIsRecipientAllowed(global, id, isForwarding, shouldFilterInviteable));
+-    return filterChatIdsByType(global, allowed, filter).slice(0, RECENT_CONTACTS_LIMIT);
+-  }, [topPeerIds, contactIds, filter, isForwarding, shouldFilterInviteable]);
++    const typed = filterChatIdsByType(global, allowed, filter);
++    return (peerFilter ? typed.filter(peerFilter) : typed).slice(0, RECENT_CONTACTS_LIMIT);
++  }, [topPeerIds, contactIds, filter, isForwarding, shouldFilterInviteable, peerFilter]);
++
++  // ListTopPeers always leads with this id as Saved Messages
++  const topPeersSelfId = currentUserId && (!peerFilter || peerFilter(currentUserId)) ? currentUserId : undefined;
++
++  const handleSearchChange = useLastCallback((value: string) => {
++    setSearch(value);
++    onSearchChange?.(value);
++  });
+ 
+   const hasSelectedChips = isMultiSelect && selectedIds.length > 0;
+ 
+@@ -298,7 +320,7 @@ const RecipientPicker = ({
+           <Island className={styles.recentContacts}>
+             <ListTopPeers
+               peerIds={recentContactIds}
+-              currentUserId={currentUserId}
++              currentUserId={topPeersSelfId}
+               selectedIds={isMultiSelect ? selectedPeerIds : undefined}
+               onPeerClick={handleSelect}
+             />
+@@ -317,7 +339,7 @@ const RecipientPicker = ({
+     recentContactIds,
+     search,
+     shouldRenderFolders,
+-    currentUserId,
++    topPeersSelfId,
+     handleSelect,
+     isMultiSelect,
+     selectedPeerIds,
+@@ -341,7 +363,9 @@ const RecipientPicker = ({
+       viewportFooter={viewportFooter}
+       listActiveKey={activeFolderIndex}
+       selectedIds={isMultiSelect ? selectedIds : undefined}
+-      onSearchChange={setSearch}
++      usernameSubtitleIds={extraSearchIds}
++      noResultsText={noResultsText}
++      onSearchChange={handleSearchChange}
+       loadMore={loadMore}
+       onSelectChatOrUser={handleSelect}
+       onClose={onClose}
+diff --git a/src/components/common/StickerView.tsx b/src/components/common/StickerView.tsx
+index 6dcf232e..e4f17fe6 100644
+--- a/src/components/common/StickerView.tsx
++++ b/src/components/common/StickerView.tsx
+@@ -73,7 +73,7 @@ const StickerView = ({
+   loopLimit,
+   shouldLoop = false,
+   shouldPreloadPreview,
+-  skipPreview,
++  skipPreview: skipPreviewProp,
+   forceAlways,
+   forceOnHeavyAnimation,
+   observeIntersectionForLoading,
+@@ -101,6 +101,8 @@ const StickerView = ({
+   const isVideo = sticker.isVideo;
+   const isStatic = !isLottie && !isVideo;
+   const previewMediaHash = getStickerMediaHash(sticker, 'preview');
++  // Greengram: packs have no thumbs yet, there is nothing to ask for
++  const skipPreview = skipPreviewProp || !sticker.previewPhotoSizes?.length;
+ 
+   const dpr = useDevicePixelRatio();
+   const randomIdPrefix = useUniqueId();
+@@ -156,7 +158,7 @@ const StickerView = ({
+   const coords = useCoordsInSharedCanvas(containerRef, sharedCanvasRef);
+ 
+   // Preload preview for Message Input and local message
+-  useMedia(previewMediaHash, !shouldLoad || !shouldPreloadPreview);
++  useMedia(previewMediaHash, !shouldLoad || !shouldPreloadPreview || skipPreview);
+ 
+   const renderId = useMemo(() => ([
+     (withSharedAnimation ? SHARED_PREFIX : randomIdPrefix),
+diff --git a/src/components/common/UsernameInput.tsx b/src/components/common/UsernameInput.tsx
+index 44bf998c..0b3ab5e6 100644
+--- a/src/components/common/UsernameInput.tsx
++++ b/src/components/common/UsernameInput.tsx
+@@ -25,7 +25,7 @@ type OwnProps = {
+   onChange: (value: string) => void;
+ };
+ 
+-const LINK_PREFIX_REGEX = /https:\/\/t\.me\/?/i;
++const LINK_PREFIX_REGEX = new RegExp(`^${TME_LINK_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}?`, 'i');
+ 
+ const runDebouncedForCheckUsername = debounce((cb) => cb(), 250, false);
+ 
+diff --git a/src/components/common/gift/GiftMenuItems.tsx b/src/components/common/gift/GiftMenuItems.tsx
+index e7d7d3a7..e883b9f0 100644
+--- a/src/components/common/gift/GiftMenuItems.tsx
++++ b/src/components/common/gift/GiftMenuItems.tsx
+@@ -174,7 +174,7 @@ const GiftMenuItems = ({
+       <MenuItem icon="forward" onClick={handleLinkShare}>
+         {lang('Share')}
+       </MenuItem>
+-      {canManage && isGiftUnique && (
++      {canManage && isGiftUnique && !giftResalePrice && (
+         <MenuItem icon="diamond" onClick={handleTransfer}>
+           {lang('GiftInfoTransfer')}
+         </MenuItem>
+diff --git a/src/components/common/pickers/ChatOrUserPicker.tsx b/src/components/common/pickers/ChatOrUserPicker.tsx
+index 27f068b6..c2b0ca6d 100644
+--- a/src/components/common/pickers/ChatOrUserPicker.tsx
++++ b/src/components/common/pickers/ChatOrUserPicker.tsx
+@@ -9,7 +9,7 @@ import type { AnimationLevel, ThreadId } from '../../../types';
+ 
+ import { PEER_PICKER_ITEM_HEIGHT_PX } from '../../../config';
+ import {
+-  getCanPostInChat, getGroupStatus, getOrderedTopics, getUserStatus, isUserOnline,
++  getCanPostInChat, getGroupStatus, getMainUsername, getOrderedTopics, getUserStatus, isUserOnline,
+ } from '../../../global/helpers';
+ import { isApiPeerChat } from '../../../global/helpers/peers';
+ import {
+@@ -68,6 +68,9 @@ export type OwnProps = {
+   footer?: TeactNode;
+   viewportFooter?: TeactNode;
+   selectedIds?: ChatSelectionKey[];
++  // Greengram: strangers from a server search can share a name, the username is what tells them apart
++  usernameSubtitleIds?: string[];
++  noResultsText?: string;
+   loadMore?: NoneToVoidFunction;
+   onSearchChange: (search: string) => void;
+   onSelectChatOrUser: (chatOrUserId: string, threadId?: ThreadId) => void;
+@@ -110,6 +113,8 @@ const ChatOrUserPicker = ({
+   viewportFooter,
+   listActiveKey,
+   selectedIds,
++  usernameSubtitleIds,
++  noResultsText,
+   animationLevel,
+   shouldSkipHistoryAnimations,
+   loadMore,
+@@ -266,6 +271,9 @@ const ChatOrUserPicker = ({
+         return [getGroupStatus(lang, peer)];
+       }
+ 
++      const username = usernameSubtitleIds?.includes(peer.id) && getMainUsername(peer);
++      if (username) return [`@${username}`];
++
+       const userStatus = selectUserStatus(global, peer.id);
+       return [
+         getUserStatus(lang, peer, userStatus),
+@@ -319,7 +327,7 @@ const ChatOrUserPicker = ({
+         onClick={() => handleClick(id)}
+       />
+     );
+-  }, [currentUserId, lang, viewportOffset, selectedIds]);
++  }, [currentUserId, lang, viewportOffset, selectedIds, usernameSubtitleIds]);
+ 
+   function renderTopicList() {
+     return (
+@@ -432,6 +440,7 @@ const ChatOrUserPicker = ({
+             viewportIds={viewportIds}
+             maxHeight={chatOrUserIds.length * PEER_PICKER_ITEM_HEIGHT_PX}
+             viewportFooter={viewportFooter}
++            noResultsText={noResultsText}
+             onLoadMore={getMore}
+             onSelect={handleChatSelect}
+             renderItem={renderChatItem}
+@@ -478,6 +487,7 @@ type ChatListContentProps = {
+   viewportIds?: string[];
+   maxHeight: number;
+   viewportFooter?: TeactNode;
++  noResultsText?: string;
+   onLoadMore: InfiniteScrollProps['onLoadMore'];
+   onSelect: (index: number) => void;
+   renderItem: (id: string, index: number) => TeactNode;
+@@ -489,6 +499,7 @@ function ChatListContent({
+   viewportIds,
+   maxHeight,
+   viewportFooter,
++  noResultsText,
+   onLoadMore,
+   onSelect,
+   onKeyDownHandlerUpdate,
+@@ -522,7 +533,7 @@ function ChatListContent({
+           )}
+         </InfiniteScroll>
+       ) : viewportIds && !viewportIds.length ? (
+-        <p className="no-results">{lang('NothingFound')}</p>
++        <p className="no-results">{noResultsText || lang('NothingFound')}</p>
+       ) : (
+         <Loading />
+       )}
+diff --git a/src/components/common/profile/ChatExtra.tsx b/src/components/common/profile/ChatExtra.tsx
+index 1048b5c8..87268de8 100644
+--- a/src/components/common/profile/ChatExtra.tsx
++++ b/src/components/common/profile/ChatExtra.tsx
+@@ -30,6 +30,7 @@ import { getIsChatMuted } from '../../../global/helpers/notifications';
+ import { getPeerTitle } from '../../../global/helpers/peers';
+ import {
+   selectBotAppPermissions,
++  selectCanGift,
+   selectChat,
+   selectChatFullInfo,
+   selectCurrentMessageList,
+@@ -534,6 +535,11 @@ const ChatExtra = ({
+             />
+           </ListItem>
+         )}
++        {userId && !isSelf && selectCanGift(getGlobal(), userId) && (
++          <ListItem icon="gift" iconBg="pink" narrow ripple onClick={() => getActions().openGiftModal({ forUserId: userId })}>
++            <span>{lang('ProfileSendAGift')}</span>
++          </ListItem>
++        )}
+         {businessWorkHours && (
+           <BusinessHours businessHours={businessWorkHours} />
+         )}
+diff --git a/src/components/common/profile/ProfileInfo.tsx b/src/components/common/profile/ProfileInfo.tsx
+index 8794d983..99200b43 100644
+--- a/src/components/common/profile/ProfileInfo.tsx
++++ b/src/components/common/profile/ProfileInfo.tsx
+@@ -19,7 +19,7 @@ import { MediaViewerOrigin } from '../../../types/index';
+ 
+ import { SERVICE_NOTIFICATIONS_USER_ID } from '../../../config.ts';
+ import {
+-  getUserStatus, isAnonymousForwardsChat, isChatChannel, isSystemBot, isUserOnline,
++  getUserStatus, isAnonymousForwardsChat, isChatChannel, isSystemBot, isUserBot, isUserOnline,
+ } from '../../../global/helpers/index';
+ import { getActions, withGlobal } from '../../../global/index';
+ import {
+@@ -44,6 +44,7 @@ import { IS_TOUCH_ENV } from '../../../util/browser/windowEnvironment';
+ import buildClassName from '../../../util/buildClassName';
+ import buildStyle from '../../../util/buildStyle';
+ import { captureEvents, SwipeDirection } from '../../../util/captureEvents';
++import { parseTonToNanos } from '../../../util/formatCurrency';
+ import { formatTonShortParts } from '../../../util/localization/format';
+ import { MEMO_EMPTY_ARRAY } from '../../../util/memo';
+ import { resolveTransitionName } from '../../../util/resolveTransitionName';
+@@ -157,10 +158,32 @@ const ProfileInfo = ({
+     openProfileRatingModal,
+     loadPeerSavedGifts,
+     openWalletCardModal,
++    openWalletModal,
+   } = getActions();
+ 
++  // Greengram: MTProto has no field for the GRAM balance, the server answers over HTTP. No amount at zero.
++  const [gramBalance, setGramBalance] = useState<bigint | undefined>();
++  const gramUserId = user && !isUserBot(user) ? user.id : undefined;
++  useEffect(() => {
++    setGramBalance(undefined);
++    if (!gramUserId) return undefined;
++    let isStale = false;
++    const slot = new URLSearchParams(self.location.search).get('account');
++    fetch(`/api/profile/${gramUserId}/gram`, {
++      credentials: 'same-origin',
++      headers: slot ? { 'X-Greengram-Account': slot } : undefined,
++    })
++      .then((response) => (response.ok ? response.json() : undefined))
++      .then((result) => {
++        if (!isStale) setGramBalance(result?.amount ? parseTonToNanos(String(result.amount)) : undefined);
++      })
++      .catch(() => undefined);
++    return () => { isStale = true; };
++  }, [gramUserId]);
++
+   const savedMusic = userFullInfo?.savedMusic;
+-  const walletBalance = userFullInfo?.walletCard?.balance;
++  const walletCard = userFullInfo?.walletCard;
++  const walletBalance = walletCard?.balance ?? gramBalance;
+   // Not in Saved Messages or the settings, which also show the current user
+   const hasWalletBalance = Boolean(user && (!user.isSelf || isOwnProfile) && walletBalance !== undefined
+     && walletBalance >= MIN_SHOWN_WALLET_NANOS);
+@@ -266,7 +289,12 @@ const ProfileInfo = ({
+   });
+ 
+   const handleWalletBalanceClick = useLastCallback(() => {
+-    openWalletCardModal({ userId: user!.id });
++    // Greengram: no wallet card without a TON address, so the chip opens the wallet itself
++    if (walletCard) {
++      openWalletCardModal({ userId: user!.id });
++    } else {
++      openWalletModal();
++    }
+   });
+ 
+   const handleStatusClick = useLastCallback(() => {
+diff --git a/src/components/common/reactions/ReactionAnimatedEmoji.tsx b/src/components/common/reactions/ReactionAnimatedEmoji.tsx
+index f458257a..d7cdf8ee 100644
+--- a/src/components/common/reactions/ReactionAnimatedEmoji.tsx
++++ b/src/components/common/reactions/ReactionAnimatedEmoji.tsx
+@@ -99,7 +99,8 @@ const ReactionAnimatedEmoji = ({
+       return assignedEffectId;
+     }
+ 
+-    if (!genericEffects?.stickers) {
++    // Greengram: an instance without imported effects answers with an empty set
++    if (!genericEffects?.stickers?.length) {
+       return undefined;
+     }
+ 
+diff --git a/src/components/common/reactions/ReactionStaticEmoji.tsx b/src/components/common/reactions/ReactionStaticEmoji.tsx
+index de342d95..eb23460c 100644
+--- a/src/components/common/reactions/ReactionStaticEmoji.tsx
++++ b/src/components/common/reactions/ReactionStaticEmoji.tsx
+@@ -6,6 +6,7 @@ import type { ObserveFn } from '../../../hooks/useIntersectionObserver';
+ 
+ import { isSameReaction } from '../../../global/helpers';
+ import buildClassName from '../../../util/buildClassName';
++import renderText from '../helpers/renderText';
+ 
+ import useThumbnail from '../../../hooks/media/useThumbnail';
+ import useMedia from '../../../hooks/useMedia';
+@@ -40,7 +41,10 @@ const ReactionStaticEmoji: FC<OwnProps> = ({
+   ), [availableReactions, reaction]);
+   const staticIcon = availableReaction?.staticIcon;
+   const staticIconId = staticIcon?.id;
+-  const mediaHash = staticIconId ? `document${staticIconId}` : undefined;
++  // Greengram: without Telegram's reaction artwork the static icon is an animated
++  // sticker, which an <img> can't draw, so show the emoji itself
++  const isStaticIconDrawable = staticIcon?.mimeType !== 'application/x-tgsticker';
++  const mediaHash = staticIconId && isStaticIconDrawable ? `document${staticIconId}` : undefined;
+   const cacheBuster = availableReaction?.isLocalCache ? 0 : 1;
+   const mediaData = useMedia(mediaHash, false, undefined, undefined, cacheBuster);
+   const thumbDataUri = useThumbnail(staticIcon?.thumbnail);
+@@ -72,6 +76,17 @@ const ReactionStaticEmoji: FC<OwnProps> = ({
+     );
+   }
+ 
++  if (!isStaticIconDrawable && reaction.type === 'emoji') {
++    return (
++      <div
++        className={buildClassName('ReactionStaticEmoji', className)}
++        style={size ? `width: ${size}px; height: ${size}px; font-size: ${size * 0.85}px; line-height: ${size}px` : undefined}
++      >
++        {renderText(reaction.emoticon, ['emoji'])}
++      </div>
++    );
++  }
++
+   return (
+     <div
+       className={buildClassName('ReactionStaticEmoji', className)}
+diff --git a/src/components/left/LeftColumn.tsx b/src/components/left/LeftColumn.tsx
+index d5957b7d..359821cf 100644
+--- a/src/components/left/LeftColumn.tsx
++++ b/src/components/left/LeftColumn.tsx
+@@ -9,7 +9,7 @@ import type { GlobalState } from '../../global/types';
+ import type { FoldersActions } from '../../hooks/reducers/useFoldersReducer';
+ import type { ReducerAction } from '../../hooks/useReducer';
+ import {
+-  type AnimationLevel, LeftColumnContent, type SettingsHighlight, SettingsScreens,
++  type AnimationLevel, GlobalSearchContent, LeftColumnContent, type SettingsHighlight, SettingsScreens,
+ } from '../../types';
+ 
+ import {
+@@ -112,6 +112,7 @@ function LeftColumn({
+ }: OwnProps & StateProps) {
+   const {
+     setGlobalSearchQuery,
++    setGlobalSearchContent,
+     setGlobalSearchClosing,
+     setGlobalSearchChatId,
+     resetChatCreation,
+@@ -172,6 +173,9 @@ function LeftColumn({
+       resetChatCreation();
+       setTimeout(() => {
+         setGlobalSearchQuery({ query: '' });
++        // Greengram: a Media or Apps tab left from the last search would
++        // answer the next one with "No Results"
++        setGlobalSearchContent({ content: GlobalSearchContent.ChatList });
+         setGlobalSearchDate({ date: undefined });
+         setGlobalSearchChatId({ id: undefined });
+         setGlobalSearchClosing({ isClosing: false });
+diff --git a/src/components/left/main/StatusPickerMenu.module.scss b/src/components/left/main/StatusPickerMenu.module.scss
+index 21354103..c06bb4d0 100644
+--- a/src/components/left/main/StatusPickerMenu.module.scss
++++ b/src/components/left/main/StatusPickerMenu.module.scss
+@@ -21,10 +21,12 @@
+     color: var(--color-primary);
+   }
+ 
+-  @media (max-width: 26rem) {
++  // same breakpoint that makes --symbol-menu-width 100vw
++  @media (max-width: 600px) {
+     right: 0.5rem !important;
+     left: 0.5rem !important;
+     width: calc(100vw - 1rem);
++    max-width: calc(100vw - 1rem);
+   }
+ }
+ 
+diff --git a/src/components/left/search/PublicPostsSearchLauncher.tsx b/src/components/left/search/PublicPostsSearchLauncher.tsx
+index 2b44d639..64fa1c79 100644
+--- a/src/components/left/search/PublicPostsSearchLauncher.tsx
++++ b/src/components/left/search/PublicPostsSearchLauncher.tsx
+@@ -7,7 +7,6 @@ import {
+   PUBLIC_POSTS_SEARCH_DEFAULT_STARS_AMOUNT,
+   PUBLIC_POSTS_SEARCH_DEFAULT_TOTAL_DAILY,
+ } from '../../../config';
+-import { selectIsCurrentUserPremium } from '../../../global/selectors';
+ import buildClassName from '../../../util/buildClassName';
+ import { formatStarsAsIcon } from '../../../util/localization/format';
+ import { throttle } from '../../../util/schedulers';
+@@ -280,6 +279,7 @@ const PublicPostsSearchLauncher = ({
+ };
+ 
+ export default memo(withGlobal<OwnProps>((global): Complete<StateProps> => ({
+-  isCurrentUserPremium: selectIsCurrentUserPremium(global),
++  // Greengram: public post search is open to everyone, no Premium upsell
++  isCurrentUserPremium: true,
+   starsBalance: global.stars?.balance?.amount || 0,
+ }))(PublicPostsSearchLauncher));
+diff --git a/src/components/left/settings/SettingsLanguage.tsx b/src/components/left/settings/SettingsLanguage.tsx
+index b9e86e6d..200c8bb0 100644
+--- a/src/components/left/settings/SettingsLanguage.tsx
++++ b/src/components/left/settings/SettingsLanguage.tsx
+@@ -107,10 +107,15 @@ const SettingsLanguage = ({
+     const currentLangCode = (window.navigator.language || 'en').toLowerCase();
+     const shortLangCode = currentLangCode.substr(0, 2);
+ 
+-    return languages.map(({ langCode, nativeName, name }) => ({
++    return languages.map(({
++      langCode, nativeName, name, stringsCount, translatedCount,
++    }) => ({
+       value: langCode,
+       label: nativeName,
+-      subLabel: name,
++      // Greengram: packs are older than this build, so say how much of the UI is translated
++      subLabel: stringsCount && translatedCount < stringsCount
++        ? `${name} · ${Math.floor((translatedCount / stringsCount) * 100)}%`
++        : name,
+       isLoading: langCode === selectedLanguage && isLoading,
+     } satisfies ItemPickerOption)).sort((a) => {
+       return currentLangCode && (a.value === currentLangCode || a.value === shortLangCode) ? -1 : 0;
+diff --git a/src/components/main/premium/GiveawayModal.tsx b/src/components/main/premium/GiveawayModal.tsx
+index fe22e632..779e44e1 100644
+--- a/src/components/main/premium/GiveawayModal.tsx
++++ b/src/components/main/premium/GiveawayModal.tsx
+@@ -141,7 +141,8 @@ const GiveawayModal = ({
+     },
+   }];
+ 
+-  if (isStarsGiftEnabled) {
++  // Greengram: an empty list means no Stars prizes on this server
++  if (isStarsGiftEnabled && starsGiftOptions?.length) {
+     TYPE_OPTIONS.push({
+       name: 'TelegramStars',
+       text: 'BoostingWinnersRandomly',
+@@ -217,7 +218,7 @@ const GiveawayModal = ({
+   }, [dataStarsPrepaidGiveaway, starsGiftOptions, isStarsPrepaidGiveaway]);
+ 
+   const filteredGifts = useMemo(() => {
+-    return gifts?.filter((gift) => gift.users === selectedUserCount && gift.currency !== STARS_CURRENCY_CODE);
++    return gifts?.filter((gift) => gift.users === selectedUserCount);
+   }, [gifts, selectedUserCount]);
+ 
+   const fullMonthlyAmount = useMemo(() => {
+@@ -229,7 +230,7 @@ const GiveawayModal = ({
+   }, [filteredGifts]);
+ 
+   const userCountOptions = useMemo(() => {
+-    return unique((gifts?.filter((gift) => gift.currency !== STARS_CURRENCY_CODE)
++    return unique((gifts
+       ?.map((winner) => winner.users) || [])).sort((a, b) => a - b);
+   }, [gifts]);
+ 
+diff --git a/src/components/main/premium/PremiumFeatureModal.module.scss b/src/components/main/premium/PremiumFeatureModal.module.scss
+index 73f3d3f8..b6ceea5f 100644
+--- a/src/components/main/premium/PremiumFeatureModal.module.scss
++++ b/src/components/main/premium/PremiumFeatureModal.module.scss
+@@ -41,6 +41,18 @@
+   aspect-ratio: 1;
+ }
+ 
++.iconFrame {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++}
++
++.featureIcon {
++  width: 8rem;
++  height: 8rem;
++  border-radius: 1.75rem;
++}
++
+ .slide {
+   scroll-snap-align: center;
+   scroll-snap-stop: always;
+diff --git a/src/components/main/premium/PremiumFeatureModal.tsx b/src/components/main/premium/PremiumFeatureModal.tsx
+index 365aede6..329babc0 100644
+--- a/src/components/main/premium/PremiumFeatureModal.tsx
++++ b/src/components/main/premium/PremiumFeatureModal.tsx
+@@ -120,6 +120,7 @@ type OwnProps = {
+   isPremium?: boolean;
+   limits?: NonNullable<GlobalState['appConfig']>['limits'];
+   premiumPromoOrder?: ApiPremiumSection[];
++  featureIcons: Record<ApiPremiumSection, string>;
+   subscriptionOption?: ApiPremiumSubscriptionOption;
+   onBack: VoidFunction;
+   onClickSubscribe: (startParam?: string) => void;
+@@ -131,6 +132,7 @@ const PremiumFeatureModal = ({
+   isPremium,
+   limits,
+   premiumPromoOrder,
++  featureIcons,
+   subscriptionOption,
+   onBack,
+   onClickSubscribe,
+@@ -275,7 +277,7 @@ const PremiumFeatureModal = ({
+             return (
+               <div className={styles.slide}>
+                 <div className={styles.frame}>
+-                  <PremiumFeaturePreviewStickers isActive={currentSlideIndex === index} />
++                  <PremiumFeaturePreviewStickers isActive={currentSlideIndex === index} icon={featureIcons.premium_stickers} />
+                 </div>
+                 <h1 className={styles.title}>
+                   {lang(PREMIUM_FEATURE_TITLES.premium_stickers)}
+@@ -314,16 +316,24 @@ const PremiumFeatureModal = ({
+           const i = promo.videoSections.indexOf(section);
+           return (
+             <div className={styles.slide}>
+-              <div className={styles.frame}>
+-                <PremiumFeaturePreviewVideo
+-                  isActive={currentSlideIndex === index}
+-                  videoId={i !== -1 ? promo.videos[i].id : undefined}
+-                  videoThumbnail={i !== -1 ? promo.videos[i].thumbnail : undefined}
+-                  isDown={PREMIUM_BOTTOM_VIDEOS.includes(section)}
+-                  index={index}
+-                  isReverseAnimation={index === reverseAnimationSlideIndex}
+-                />
+-              </div>
++              {i === -1 ? (
++                // Greengram: no promo videos here, the feature's icon instead
++                // of an empty gray phone
++                <div className={buildClassName(styles.frame, styles.iconFrame)}>
++                  <img src={featureIcons[section]} alt="" className={styles.featureIcon} draggable={false} />
++                </div>
++              ) : (
++                <div className={styles.frame}>
++                  <PremiumFeaturePreviewVideo
++                    isActive={currentSlideIndex === index}
++                    videoId={promo.videos[i].id}
++                    videoThumbnail={promo.videos[i].thumbnail}
++                    isDown={PREMIUM_BOTTOM_VIDEOS.includes(section)}
++                    index={index}
++                    isReverseAnimation={index === reverseAnimationSlideIndex}
++                  />
++                </div>
++              )}
+               <h1 className={styles.title}>
+                 {lang(PREMIUM_FEATURE_TITLES[section], undefined, { withNodes: true, renderTextFilters: ['br'] })}
+               </h1>
+diff --git a/src/components/main/premium/PremiumMainModal.tsx b/src/components/main/premium/PremiumMainModal.tsx
+index b7402d92..77af43f3 100644
+--- a/src/components/main/premium/PremiumMainModal.tsx
++++ b/src/components/main/premium/PremiumMainModal.tsx
+@@ -1,5 +1,5 @@
+ import { memo, useEffect, useMemo, useRef, useState } from '@teact';
+-import { getActions, withGlobal } from '../../../global';
++import { getActions, getGlobal, withGlobal } from '../../../global';
+ 
+ import type {
+   ApiPremiumPromo,
+@@ -12,7 +12,7 @@ import type {
+ } from '../../../api/types';
+ import type { GlobalState } from '../../../global/types';
+ 
+-import { PREMIUM_FEATURE_SECTIONS, TME_LINK_PREFIX } from '../../../config';
++import { PREMIUM_FEATURE_SECTIONS, STARS_CURRENCY_CODE, TME_LINK_PREFIX } from '../../../config';
+ import { getUserFullName } from '../../../global/helpers';
+ import {
+   selectCustomEmoji,
+@@ -184,6 +184,17 @@ const PremiumMainModal = ({
+     const dialog = dialogRef.current;
+     if (!dialog) return;
+ 
++    // Greengram: plans are priced in Stars and paid here, there's no bot to go to
++    const { currentUserId } = getGlobal();
++    if (selectedSubscriptionOption?.currency === STARS_CURRENCY_CODE && currentUserId) {
++      openInvoice({
++        type: 'premiumGiftStars',
++        userId: currentUserId,
++        months: selectedSubscriptionOption.months,
++      });
++      return;
++    }
++
+     if (premiumSlug) {
+       openInvoice({
+         type: 'slug',
+@@ -498,6 +509,7 @@ const PremiumMainModal = ({
+             isPremium={isPremium}
+             limits={limits}
+             premiumPromoOrder={premiumPromoOrder}
++            featureIcons={PREMIUM_FEATURE_COLOR_ICONS}
+             subscriptionOption={selectedSubscriptionOption}
+           />
+         )}
+diff --git a/src/components/main/premium/PremiumSubscriptionOption.module.scss b/src/components/main/premium/PremiumSubscriptionOption.module.scss
+index 8978e21f..8619a939 100644
+--- a/src/components/main/premium/PremiumSubscriptionOption.module.scss
++++ b/src/components/main/premium/PremiumSubscriptionOption.module.scss
+@@ -145,3 +145,16 @@
+   font-size: 0.8125rem;
+   font-weight: var(--font-weight-medium);
+ }
++
++// Greengram: the rows take a pointer, so they should answer to it
++.wrapper,
++.giveawayWrapper {
++  transition: background-color 0.15s ease-out;
++}
++
++@media (hover: hover) {
++  .wrapper:hover,
++  .giveawayWrapper:hover {
++    background-color: var(--color-interactive-element-hover);
++  }
++}
+diff --git a/src/components/main/premium/PremiumSubscriptionOption.tsx b/src/components/main/premium/PremiumSubscriptionOption.tsx
+index 2950a70b..5157c207 100644
+--- a/src/components/main/premium/PremiumSubscriptionOption.tsx
++++ b/src/components/main/premium/PremiumSubscriptionOption.tsx
+@@ -3,6 +3,7 @@ import { memo, useCallback, useMemo } from '../../../lib/teact/teact';
+ 
+ import type { ApiPremiumGiftCodeOption, ApiPremiumSubscriptionOption } from '../../../api/types';
+ 
++import { STARS_CURRENCY_CODE } from '../../../config';
+ import buildClassName from '../../../util/buildClassName';
+ import { formatCurrencyAsString } from '../../../util/formatCurrency';
+ 
+@@ -30,6 +31,10 @@ const PremiumSubscriptionOption = ({
+   } = option;
+   const users = 'users' in option ? option.users : undefined;
+   const perMonth = Math.floor(amount / months);
++  // Greengram: plans are priced in Stars, and "XTR" means nothing to a reader
++  const formatPrice = (value: number) => (currency === STARS_CURRENCY_CODE
++    ? `★${value.toLocaleString(lang.code)}`
++    : formatCurrencyAsString(value, currency, lang.code));
+   const isUserCountPlural = users ? users > 1 : undefined;
+ 
+   const discount = useMemo(() => {
+@@ -74,11 +79,11 @@ const PremiumSubscriptionOption = ({
+           {lang('Months', { count: months }, { pluralValue: months })}
+         </div>
+         <div className={styles.perMonth}>
+-          {(isGiveaway || isUserCountPlural) ? `${formatCurrencyAsString(amount, currency, lang.code)} x ${users!}`
+-            : lang('PricePerMonth', { amount: formatCurrencyAsString(perMonth, currency, lang.code) })}
++          {(isGiveaway || isUserCountPlural) ? `${formatPrice(amount)} x ${users!}`
++            : lang('PricePerMonth', { amount: formatPrice(perMonth) })}
+         </div>
+         <div className={styles.amount}>
+-          {formatCurrencyAsString(amount, currency, lang.code)}
++          {formatPrice(amount)}
+         </div>
+       </div>
+     </label>
+diff --git a/src/components/main/premium/previews/PremiumFeaturePreviewStickers.module.scss b/src/components/main/premium/previews/PremiumFeaturePreviewStickers.module.scss
+index 542c32e6..572c1b24 100644
+--- a/src/components/main/premium/previews/PremiumFeaturePreviewStickers.module.scss
++++ b/src/components/main/premium/previews/PremiumFeaturePreviewStickers.module.scss
+@@ -33,3 +33,16 @@
+     height: 100% !important;
+   }
+ }
++
++.empty {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  height: 100%;
++}
++
++.icon {
++  width: 8rem;
++  height: 8rem;
++  border-radius: 1.75rem;
++}
+diff --git a/src/components/main/premium/previews/PremiumFeaturePreviewStickers.tsx b/src/components/main/premium/previews/PremiumFeaturePreviewStickers.tsx
+index e92a5e4f..5f92f838 100644
+--- a/src/components/main/premium/previews/PremiumFeaturePreviewStickers.tsx
++++ b/src/components/main/premium/previews/PremiumFeaturePreviewStickers.tsx
+@@ -18,6 +18,7 @@ import styles from './PremiumFeaturePreviewStickers.module.scss';
+ 
+ type OwnProps = {
+   isActive: boolean;
++  icon: string;
+ };
+ 
+ type StateProps = {
+@@ -105,7 +106,7 @@ const AnimatedCircleSticker = ({
+ };
+ 
+ const PremiumFeaturePreviewStickers = ({
+-  stickers, isActive,
++  stickers, isActive, icon,
+ }: OwnProps & StateProps) => {
+   const containerRef = useRef<HTMLDivElement>();
+   const [offset, setOffset] = useState(0);
+@@ -135,6 +136,15 @@ const PremiumFeaturePreviewStickers = ({
+     setSize(container.closest('.modal-dialog')!.clientWidth);
+   }, []);
+ 
++  // Greengram: no sets with premium animations yet
++  if (!renderedStickers?.length) {
++    return (
++      <div className={styles.empty}>
++        <img src={icon} alt="" className={styles.icon} draggable={false} />
++      </div>
++    );
++  }
++
+   return (
+     <div
+       className={styles.root}
+diff --git a/src/components/middle/message/ActionMessage.tsx b/src/components/middle/message/ActionMessage.tsx
+index 5d0519ff..079aae44 100644
+--- a/src/components/middle/message/ActionMessage.tsx
++++ b/src/components/middle/message/ActionMessage.tsx
+@@ -184,6 +184,7 @@ const ActionMessage = ({
+     declineStarGiftOffer,
+     showNotification,
+     toggleNoForwards,
++    openChatByUsername,
+   } = getActions();
+ 
+   const ref = useRef<HTMLDivElement>();
+@@ -428,7 +429,12 @@ const ActionMessage = ({
+         break;
+       }
+ 
+-      case 'giftTon':
++      case 'giftTon': {
++        // Greengram: a wallet transfer, its details are in the wallet
++        openChatByUsername({ username: 'wallet', shouldStartMainApp: true });
++        break;
++      }
++
+       case 'giftStars': {
+         openStarsTransactionFromGift({
+           chatId: message.chatId,
+diff --git a/src/components/middle/message/ActionMessageText.tsx b/src/components/middle/message/ActionMessageText.tsx
+index 6e7b6c8d..7d9fe8ad 100644
+--- a/src/components/middle/message/ActionMessageText.tsx
++++ b/src/components/middle/message/ActionMessageText.tsx
+@@ -37,6 +37,7 @@ import { formatCalendarDate, formatDateTime, secondsToDate } from '../../../util
+ import {
+   formatCurrencyAmountAsText, formatStarsAsText, formatTonAsIcon, formatTonAsText,
+ } from '../../../util/localization/format';
++import { formatWalletTransferAmount } from '../../../util/walletTransfer';
+ import { conjuctionWithNodes } from '../../../util/localization/utils';
+ import { getServerTime } from '../../../util/serverTime';
+ import renderText from '../../common/helpers/renderText';
+@@ -518,15 +519,24 @@ const ActionMessageText = ({
+         return translateWithYou(lang, 'ActionGramTransferText', isOutgoing, { from, amount, worth });
+       }
+ 
+-      case 'giftStars':
+-      case 'giftPremium':
+       case 'giftTon': {
++        // Greengram: this is a wallet transfer between two people, any coin
++        const { cryptoAmount, cryptoCurrency } = action;
++        const sent = formatWalletTransferAmount(lang, cryptoAmount, cryptoCurrency);
++
++        return translateWithYou(
++          lang, 'ActionWalletTransferText', isOutgoing, { from: senderLink, amount: renderStrong(sent) },
++        );
++      }
++
++      case 'giftStars':
++      case 'giftPremium': {
+         const {
+-          amount, currency, cryptoAmount, cryptoCurrency, type,
++          amount, currency, cryptoAmount, cryptoCurrency,
+         } = action;
+ 
+         const price = formatCurrency(lang, amount, currency, { asFontIcon: true });
+-        const cryptoPrice = cryptoAmount && cryptoCurrency === TON_CURRENCY_CODE && type !== 'giftTon'
++        const cryptoPrice = cryptoAmount && cryptoCurrency === TON_CURRENCY_CODE
+           ? formatTonAsIcon(lang, cryptoAmount) : undefined;
+ 
+         const cost = cryptoPrice ? lang('ActionGiftCostCrypto', { price, cryptoPrice }, { withNodes: true }) : price;
+@@ -746,7 +756,8 @@ const ActionMessageText = ({
+           return lang('ActionStarGiftPrepaidUpgraded', { user: toLink }, { withNodes: true });
+         }
+ 
+-        if (resaleAmount && !transferStars) {
++        // Greengram: a bought gift keeps its transfer fee for the gift sheet
++        if (resaleAmount) {
+           const amountText = formatCurrencyAmountAsText(lang, resaleAmount);
+ 
+           return lang(
+diff --git a/src/components/middle/message/ContextMenuContainer.tsx b/src/components/middle/message/ContextMenuContainer.tsx
+index 988becb1..d507e81b 100644
+--- a/src/components/middle/message/ContextMenuContainer.tsx
++++ b/src/components/middle/message/ContextMenuContainer.tsx
+@@ -1085,7 +1085,10 @@ export default memo(withGlobal<OwnProps>(
+       isInSavedMessages,
+       isChannel,
+       canReplyInChat,
+-      isWithPaidReaction: !message.isEphemeral && chatFullInfo?.isPaidReactionAvailable,
++      // Greengram: the Stars go to the author, so not on your own messages or a bot's;
++      // private chats have them too
++      isWithPaidReaction: !message.isEphemeral && !isOwn && !isBot && !isInSavedMessages
++        && (isPrivate || chatFullInfo?.isPaidReactionAvailable),
+       poll,
+       story,
+       user,
+diff --git a/src/components/middle/message/actions/Gift.tsx b/src/components/middle/message/actions/Gift.tsx
+index 0349d581..28c2e4e3 100644
+--- a/src/components/middle/message/actions/Gift.tsx
++++ b/src/components/middle/message/actions/Gift.tsx
+@@ -16,6 +16,7 @@ import {
+ } from '../../../../global/selectors';
+ import { formatCountdownDays } from '../../../../util/dates/duration';
+ import { formatTonAsIcon } from '../../../../util/localization/format';
++import { formatWalletTransferAmount } from '../../../../util/walletTransfer';
+ import { renderTextWithEntities } from '../../../common/helpers/renderTextWithEntities';
+ 
+ import { type ObserveFn } from '../../../../hooks/useIntersectionObserver';
+@@ -54,11 +55,9 @@ const GiftAction = ({
+ 
+   const renderTonTitle = () => {
+     const { cryptoAmount, cryptoCurrency } = action;
+-    const price = cryptoAmount && cryptoCurrency === TON_CURRENCY_CODE
++    return cryptoCurrency === TON_CURRENCY_CODE && cryptoAmount
+       ? formatTonAsIcon(lang, cryptoAmount, { isMono: true })
+-      : undefined;
+-
+-    return price;
++      : formatWalletTransferAmount(lang, cryptoAmount, cryptoCurrency);
+   };
+ 
+   return (
+@@ -90,7 +89,7 @@ const GiftAction = ({
+         <div>
+           {message && renderTextWithEntities(message)}
+           {!message
+-            && (lang(action.type === 'giftTon' ? 'DescriptionAboutGram'
++            && (lang(action.type === 'giftTon' ? 'ActionWalletTransferDescription'
+               : action.type === 'giftPremium'
+                 ? 'ActionGiftPremiumText' : 'ActionGiftStarsText'))}
+         </div>
+diff --git a/src/components/middle/message/actions/StarGiftUnique.tsx b/src/components/middle/message/actions/StarGiftUnique.tsx
+index 638a2757..2b96aeec 100644
+--- a/src/components/middle/message/actions/StarGiftUnique.tsx
++++ b/src/components/middle/message/actions/StarGiftUnique.tsx
+@@ -78,12 +78,15 @@ const StarGiftAction = ({
+     [lang('ActionStarGiftUniqueSymbol'), pattern.name],
+   ], [lang, model, pattern, backdrop]);
+ 
+-  const shouldShowFrom = !isOutgoing || action.isUpgrade;
+-  const peer = shouldShowFrom && !action.isUpgrade ? sender : recipient;
++  // Greengram: a sale isn't a gift between the two; the buyer keeps it
++  // ("Saved Gift"), the seller sees who it went to
++  const isResale = Boolean(action.resaleAmount);
++  const shouldShowFrom = (!isOutgoing || action.isUpgrade) && !isResale;
++  const peer = (shouldShowFrom && !action.isUpgrade) || (isResale && !isOutgoing) ? sender : recipient;
+ 
+   const fallbackPeerTitle = lang('ActionFallbackSomeone');
+   const peerTitle = peer && getPeerTitle(lang, peer);
+-  const isSelf = sender?.id === recipient?.id;
++  const isSelf = sender?.id === recipient?.id || (isResale && isOutgoing);
+ 
+   return (
+     <div
+diff --git a/src/components/middle/message/reactions/Reactions.tsx b/src/components/middle/message/reactions/Reactions.tsx
+index 06f8102c..4c57e89c 100644
+--- a/src/components/middle/message/reactions/Reactions.tsx
++++ b/src/components/middle/message/reactions/Reactions.tsx
+@@ -139,6 +139,9 @@ const Reactions = ({
+       return;
+     }
+ 
++    // Greengram: star reactions pay the author, you can't pay yourself
++    if (message.isOutgoing) return;
++
+     addLocalPaidReaction({
+       chatId: message.chatId,
+       messageId: message.id,
+diff --git a/src/components/modals/browser/BrowserModal.module.scss b/src/components/modals/browser/BrowserModal.module.scss
+index 5d7a4fd5..719a987c 100644
+--- a/src/components/modals/browser/BrowserModal.module.scss
++++ b/src/components/modals/browser/BrowserModal.module.scss
+@@ -198,6 +198,13 @@
+       max-width: 300px;
+       max-height: 2.5rem;
+     }
++
++    // Greengram: phones can't drag it, so it stayed in the middle of the screen
++    @media (max-width: 600px) {
++      .modal-container {
++        align-items: flex-end;
++      }
++    }
+   }
+ }
+ 
+diff --git a/src/components/modals/browser/WalletRecipientPicker.tsx b/src/components/modals/browser/WalletRecipientPicker.tsx
+new file mode 100644
+index 00000000..38787b25
+--- /dev/null
++++ b/src/components/modals/browser/WalletRecipientPicker.tsx
+@@ -0,0 +1,98 @@
++import { memo, useMemo, useState } from '../../../lib/teact/teact';
++import { getActions, getGlobal, withGlobal } from '../../../global';
++
++import type { ApiChatType, ApiUser } from '../../../api/types';
++import type { TabState } from '../../../global/types';
++import type { WebApp } from '../../../types/webapp';
++
++import { SERVICE_NOTIFICATIONS_USER_ID } from '../../../config';
++import { isDeletedUser, isUserBot } from '../../../global/helpers';
++import { selectTabState, selectUser } from '../../../global/selectors';
++
++import useDebouncedCallback from '../../../hooks/useDebouncedCallback';
++import useLang from '../../../hooks/useLang';
++import useLastCallback from '../../../hooks/useLastCallback';
++
++import RecipientPicker from '../../common/RecipientPicker';
++
++type OwnProps = {
++  isOpen: boolean;
++  onSelect: (userId: string) => void;
++  onClose: NoneToVoidFunction;
++  onCloseAnimationEnd: NoneToVoidFunction;
++};
++
++type StateProps = {
++  search?: TabState['walletRecipientSearch'];
++};
++
++const WALLET_BOT_USERNAME = 'wallet';
++const PEOPLE_ONLY: ApiChatType[] = ['users'];
++const SEARCH_DEBOUNCE_MS = 300;
++
++// The event hands a user id to the frame, so a bot's own page can't ask for it
++export function isWalletWebApp(webApp?: WebApp, bot?: ApiUser) {
++  if (!webApp || !bot?.usernames?.some(({ username }) => username === WALLET_BOT_USERNAME)) return false;
++  try {
++    return new URL(webApp.url).origin === window.location.origin;
++  } catch (err) {
++    return false;
++  }
++}
++
++// Same rule as the server's recipient check: a person, not yourself. Saved Messages would be a transfer to yourself.
++function canReceiveTransfer(id: string) {
++  const global = getGlobal();
++  const user = selectUser(global, id);
++  return user !== undefined && id !== global.currentUserId && id !== SERVICE_NOTIFICATIONS_USER_ID
++    && !isUserBot(user) && !isDeletedUser(user);
++}
++
++const WalletRecipientPicker = ({
++  isOpen,
++  search,
++  onSelect,
++  onClose,
++  onCloseAnimationEnd,
++}: OwnProps & StateProps) => {
++  const { searchWalletRecipients } = getActions();
++  const lang = useLang();
++  const [query, setQuery] = useState('');
++
++  const debouncedSearch = useDebouncedCallback((value: string) => {
++    searchWalletRecipients({ query: value });
++  }, [], SEARCH_DEBOUNCE_MS, true);
++
++  const handleSearchChange = useLastCallback((value: string) => {
++    const trimmed = value.trim();
++    setQuery(trimmed);
++    if (trimmed) debouncedSearch(trimmed);
++  });
++
++  const extraSearchIds = useMemo(() => {
++    if (!query || search?.query !== query) return undefined;
++    return [...search.localUserIds, ...search.globalUserIds];
++  }, [query, search]);
++
++  return (
++    <RecipientPicker
++      isOpen={isOpen}
++      title={lang('SelectChat')}
++      searchPlaceholder={lang('Search')}
++      filter={PEOPLE_ONLY}
++      peerFilter={canReceiveTransfer}
++      extraSearchIds={extraSearchIds}
++      noResultsText={lang(query ? 'WalletRecipientNotFound' : 'WalletRecipientEmpty')}
++      onSearchChange={handleSearchChange}
++      onSelectRecipient={onSelect}
++      onClose={onClose}
++      onCloseAnimationEnd={onCloseAnimationEnd}
++    />
++  );
++};
++
++export default memo(withGlobal<OwnProps>(
++  (global): Complete<StateProps> => ({
++    search: selectTabState(global).walletRecipientSearch,
++  }),
++)(WalletRecipientPicker));
+diff --git a/src/components/modals/browser/WebAppTab.tsx b/src/components/modals/browser/WebAppTab.tsx
+index 8c369721..35599435 100644
+--- a/src/components/modals/browser/WebAppTab.tsx
++++ b/src/components/modals/browser/WebAppTab.tsx
+@@ -53,6 +53,7 @@ import ConfirmDialog from '../../ui/ConfirmDialog';
+ import Modal from '../../ui/Modal';
+ import Spinner from '../../ui/Spinner';
+ import Transition from '../../ui/Transition';
++import WalletRecipientPicker, { isWalletWebApp } from './WalletRecipientPicker';
+ 
+ import styles from './WebAppTab.module.scss';
+ 
+@@ -654,9 +655,37 @@ const WebAppTab = ({
+     openChatWithInfo({ id: bot!.id });
+   });
+ 
++  const [recipientRequestId, setRecipientRequestId] = useState<string>();
++  const [isRecipientPickerShown, setIsRecipientPickerShown] = useState(false);
++
++  const handleRecipientPickerClosed = useLastCallback(() => setIsRecipientPickerShown(false));
++  const closeRecipientPicker = useLastCallback((userId?: string) => {
++    if (recipientRequestId === undefined) return;
++    sendEvent({
++      eventType: 'greengram_recipient_picker_closed',
++      eventData: { req_id: recipientRequestId, user_id: userId },
++    });
++    setRecipientRequestId(undefined);
++  });
++
+   function handleEvent(event: WebAppInboundEvent) {
+     const { eventType, eventData } = event;
+ 
++    // Greengram: only the wallet may ask, the answer hands a user id to the frame
++    if (eventType === 'greengram_recipient_picker_probe' || eventType === 'greengram_recipient_picker_open') {
++      if (!isWalletWebApp(webApp, bot)) return;
++
++      if (eventType === 'greengram_recipient_picker_probe') {
++        sendEvent({ eventType: 'greengram_recipient_picker_available' });
++        return;
++      }
++      if (typeof eventData?.req_id !== 'string') return;
++      closeRecipientPicker();
++      setRecipientRequestId(eventData.req_id);
++      setIsRecipientPickerShown(true);
++      return;
++    }
++
+     if (eventType === 'web_app_request_fullscreen') {
+       if (!isActive) return;
+ 
+@@ -679,7 +708,8 @@ const WebAppTab = ({
+     if (eventType === 'web_app_open_tg_link') {
+       changeBrowserModalState({ state: 'minimized' });
+ 
+-      const linkUrl = TME_LINK_PREFIX + eventData.path_full;
++      // Greengram: Stars have no public link, t.me/stars would look up a username
++      const linkUrl = eventData.path_full === '/stars' ? 'tg://stars' : TME_LINK_PREFIX + eventData.path_full;
+       openTelegramLink({ url: linkUrl, shouldIgnoreCache: eventData.force_request });
+     }
+ 
+@@ -1277,6 +1307,7 @@ const WebAppTab = ({
+               shouldHideSecondaryButton && styles.hidden,
+             )}
+             fluid
++            noForcedUpperCase
+             style={buildStyle(
+               `background-color: ${renderingSecondaryButton?.color}`,
+               `color: ${renderingSecondaryButton?.textColor}`,
+@@ -1300,7 +1331,14 @@ const WebAppTab = ({
+               shouldHideMainButton && styles.hidden,
+             )}
+             fluid
+-            style={`background-color: ${renderingMainButton?.color}; color: ${renderingMainButton?.textColor}`}
++            noForcedUpperCase
++            style={buildStyle(
++              `background-color: ${renderingMainButton?.color}`,
++              `color: ${renderingMainButton?.textColor}`,
++              // Greengram: an app that sends its own colours has already drawn the disabled state
++              shouldShowMainButton && !shouldHideMainButton && !renderingMainButton?.isActive
++                && renderingMainButton?.color !== themeParams.button_color && 'opacity: 1 !important',
++            )}
+             disabled={!renderingMainButton?.isActive && !renderingMainButton?.isProgressVisible}
+             nonInteractive={renderingMainButton?.isProgressVisible}
+             isShiny={renderingMainButton?.hasShineEffect && !renderingMainButton?.isProgressVisible}
+@@ -1399,6 +1437,14 @@ const WebAppTab = ({
+         onClose={handleRejectClipboardText}
+         confirmHandler={handleConfirmClipboardText}
+       />
++      {isRecipientPickerShown && (
++        <WalletRecipientPicker
++          isOpen={recipientRequestId !== undefined}
++          onSelect={closeRecipientPicker}
++          onClose={closeRecipientPicker}
++          onCloseAnimationEnd={handleRecipientPickerClosed}
++        />
++      )}
+     </div>
+   );
+ };
+diff --git a/src/components/modals/emojiStatusAccess/EmojiStatusAccessModal.tsx b/src/components/modals/emojiStatusAccess/EmojiStatusAccessModal.tsx
+index c7dedf82..716f4e8c 100644
+--- a/src/components/modals/emojiStatusAccess/EmojiStatusAccessModal.tsx
++++ b/src/components/modals/emojiStatusAccess/EmojiStatusAccessModal.tsx
+@@ -66,12 +66,13 @@ const EmojiStatusAccessModal = ({
+   }, [isOpen, stickerSet, isAccountFrozen]);
+ 
+   const mockPeerWithStatus = useMemo(() => {
+-    if (!currentUser || !stickerSet?.stickers) return undefined;
++    // Greengram: the set is empty on an instance with no packs
++    if (!currentUser || !stickerSet?.stickers?.length) return undefined;
+     return {
+       ...currentUser,
+       emojiStatus: {
+         type: 'regular',
+-        documentId: stickerSet.stickers[currentStatusIndex].id,
++        documentId: stickerSet.stickers[currentStatusIndex % stickerSet.stickers.length].id,
+       },
+     } satisfies ApiUser;
+   }, [currentUser, stickerSet, currentStatusIndex]);
+diff --git a/src/components/modals/gift/GiftComposer.tsx b/src/components/modals/gift/GiftComposer.tsx
+index b8634cbd..576d08ce 100644
+--- a/src/components/modals/gift/GiftComposer.tsx
++++ b/src/components/modals/gift/GiftComposer.tsx
+@@ -80,7 +80,9 @@ function GiftComposer({
+   const [giftMessage, setGiftMessage] = useState<string>('');
+   const [shouldHideName, setShouldHideName] = useState<boolean>(false);
+   const [shouldPayForUpgrade, setShouldPayForUpgrade] = useState<boolean>(false);
+-  const [shouldPayByStars, setShouldPayByStars] = useState<boolean>(false);
++  // Greengram: a plan priced in Stars has no other way to be paid
++  const isStarsOnly = giftByStars === gift;
++  const [shouldPayByStars, setShouldPayByStars] = useState<boolean>(isStarsOnly);
+ 
+   useEffect(() => {
+     if (shouldDisallowLimitedStarGifts) {
+@@ -235,7 +237,8 @@ function GiftComposer({
+     }
+   });
+ 
+-  const canUseStarsPayment = hasPremiumByStars && starBalance && (starBalance.amount > giftByStars.amount);
++  const canUseStarsPayment = !isStarsOnly && hasPremiumByStars && starBalance
++    && (starBalance.amount > giftByStars.amount);
+   function renderOptionsSection() {
+     const symbolsLeft = captionLimit ? captionLimit - giftMessage.length : undefined;
+ 
+diff --git a/src/components/modals/gift/GiftItemPremium.tsx b/src/components/modals/gift/GiftItemPremium.tsx
+index 52da8609..2dfa5cca 100644
+--- a/src/components/modals/gift/GiftItemPremium.tsx
++++ b/src/components/modals/gift/GiftItemPremium.tsx
+@@ -84,9 +84,9 @@ function GiftItemPremium({
+         {lang('PremiumGiftDescription')}
+       </div>
+       <Button className={styles.buy} color="adaptive" nonInteractive size="tiny" pill fluid>
+-        {formatCurrencyAsString(amount, currency)}
++        {optionByStars === option ? formatStarsAsIcon(lang, amount, { asFont: true }) : formatCurrencyAsString(amount, currency)}
+       </Button>
+-      {optionByStars && (
++      {optionByStars && optionByStars !== option && (
+         <div className={styles.starsPriceBlock}>
+           {lang('GiftPremiumStarsPrice', {
+             stars: (formatStarsAsIcon(lang, optionByStars.amount)),
+@@ -102,7 +102,7 @@ function GiftItemPremium({
+ 
+ export default memo(withGlobal<OwnProps>(
+   (global, { option }): Complete<StateProps> => {
+-    const sticker = selectGiftStickerForDuration(global, option.months);
++    const sticker = selectGiftStickerForDuration(global, option.months * 30);
+     const canPlayAnimatedEmojis = selectCanPlayAnimatedEmojis(global);
+ 
+     return {
+diff --git a/src/components/modals/gift/GiftItemStar.tsx b/src/components/modals/gift/GiftItemStar.tsx
+index 8b4b610a..05a82bac 100644
+--- a/src/components/modals/gift/GiftItemStar.tsx
++++ b/src/components/modals/gift/GiftItemStar.tsx
+@@ -139,7 +139,8 @@ function GiftItemStar({
+         <GiftRibbon
+           color={[giftAttrs.backdrop.centerColor, giftAttrs.backdrop.edgeColor]}
+           text={
+-            lang('GiftSavedNumber', { number: giftNumber })
++            // Greengram: the instance's offers get their number when bought
++            giftNumber ? lang('GiftSavedNumber', { number: giftNumber }) : lang('New')
+           }
+         />
+       );
+diff --git a/src/components/modals/gift/GiftModal.module.scss b/src/components/modals/gift/GiftModal.module.scss
+index 29c4a25c..683ffd57 100644
+--- a/src/components/modals/gift/GiftModal.module.scss
++++ b/src/components/modals/gift/GiftModal.module.scss
+@@ -67,10 +67,9 @@
+ .resaleStarGiftsContainer,
+ .starGiftsContainer,
+ .premiumGiftsGallery {
+-  display: flex;
++  display: grid;
++  grid-template-columns: repeat(3, 1fr);
+   gap: 0.5rem;
+-  align-items: center;
+-  justify-content: center;
+ 
+   margin-bottom: 0.75rem;
+ }
+diff --git a/src/components/modals/gift/GiftModal.tsx b/src/components/modals/gift/GiftModal.tsx
+index d20edaab..54998f85 100644
+--- a/src/components/modals/gift/GiftModal.tsx
++++ b/src/components/modals/gift/GiftModal.tsx
+@@ -47,6 +47,8 @@ import StarGiftCategoryList from './StarGiftCategoryList';
+ 
+ import styles from './GiftModal.module.scss';
+ 
++const SHOW_STARS_ONLY_TOGGLE = false;
++
+ export type OwnProps = {
+   modal: TabState['giftModal'];
+ };
+@@ -148,8 +150,11 @@ const GiftModal = ({
+   const lang = useLang();
+   const allGifts = renderingModal?.gifts;
+   const filteredGifts = useMemo(() => {
+-    return allGifts?.sort((prevGift, gift) => prevGift.months - gift.months)
+-      .filter((gift) => gift.users === 1 && gift.currency !== STARS_CURRENCY_CODE);
++    const options = allGifts?.sort((prevGift, gift) => prevGift.months - gift.months)
++      .filter((gift) => gift.users === 1);
++    const paid = options?.filter((gift) => gift.currency !== STARS_CURRENCY_CODE);
++    // Greengram: plans are priced in Stars only
++    return paid?.length ? paid : options;
+   }, [allGifts]);
+ 
+   const giftsByStars = useMemo(() => {
+@@ -171,7 +176,8 @@ const GiftModal = ({
+   }, [allGifts, filteredGifts]);
+ 
+   const baseGift = useMemo(() => {
+-    return filteredGifts?.reduce((prev, gift) => (prev.amount < gift.amount ? prev : gift));
++    if (!filteredGifts?.length) return undefined;
++    return filteredGifts.reduce((prev, gift) => (prev.amount < gift.amount ? prev : gift));
+   }, [filteredGifts]);
+ 
+   const {
+@@ -631,7 +637,8 @@ const GiftModal = ({
+           />
+         )}
+       </Transition>
+-      {isResaleScreen && (
++      {/* Greengram: every listing is in Stars, the toggle would do nothing */}
++      {isResaleScreen && SHOW_STARS_ONLY_TOGGLE && (
+         <Checkbox
+           className={buildClassName(
+             styles.starsOnlyToggle,
+diff --git a/src/components/modals/gift/UniqueGiftManageButtons.tsx b/src/components/modals/gift/UniqueGiftManageButtons.tsx
+index d391be2d..45f9783c 100644
+--- a/src/components/modals/gift/UniqueGiftManageButtons.tsx
++++ b/src/components/modals/gift/UniqueGiftManageButtons.tsx
+@@ -131,7 +131,8 @@ const UniqueGiftManageButtons = ({
+ 
+   return (
+     <div className={styles.manageButtons}>
+-      <Button
++      {/* Greengram: a listed gift stays put until it's taken off sale */}
++      {!giftResalePrice && <Button
+         color="transparentBlured"
+         iconName="gift-transfer-inline"
+         iconAlignment="top"
+@@ -145,7 +146,7 @@ const UniqueGiftManageButtons = ({
+         <span className={styles.text}>
+           {lang('GiftInfoTransfer')}
+         </span>
+-      </Button>
++      </Button>}
+       {(canWear || !canTakeOff) && (
+         <Button
+           color="transparentBlured"
+diff --git a/src/components/modals/gift/info/GiftInfoModal.tsx b/src/components/modals/gift/info/GiftInfoModal.tsx
+index b9c88de0..e8752866 100644
+--- a/src/components/modals/gift/info/GiftInfoModal.tsx
++++ b/src/components/modals/gift/info/GiftInfoModal.tsx
+@@ -113,7 +113,7 @@ const GiftInfoModal = ({
+   const lang = useLang();
+ 
+   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
+-  const [shouldPayInTon, setShouldPayInTon] = useState<boolean>(false);
++  const [shouldPayInTon] = useState<boolean>(false);
+   const [giftMessage, setGiftMessage] = useState('');
+   const [shouldHideName, setShouldHideName] = useState(true);
+ 
+@@ -294,6 +294,8 @@ const GiftInfoModal = ({
+ 
+   const uniqueGiftTitle = useMemo(() => {
+     if (!gift || gift.type !== 'starGiftUnique' || !giftAttributes?.backdrop) return undefined;
++    // Greengram: an offer from the instance has no number until it's bought
++    if (!gift.number) return gift.title;
+ 
+     const numberColor = giftAttributes.backdrop.textColor;
+ 
+@@ -755,12 +757,13 @@ const GiftInfoModal = ({
+         ]);
+       }
+ 
++      // Greengram: a collection with no supply limit has a total of 0
+       tableData.push([
+         lang('GiftInfoAvailability'),
+-        lang('GiftInfoIssued', {
++        gift.totalCount ? lang('GiftInfoIssued', {
+           issued: gift.issuedCount,
+           total: gift.totalCount,
+-        }),
++        }) : lang('GiftInfoIssuedUnlimited', { issued: gift.issuedCount }),
+       ]);
+ 
+       if (gift.valueAmount && gift.valueCurrency) {
+@@ -941,7 +944,7 @@ const GiftInfoModal = ({
+             && (
+               <p>
+                 {lang('GiftBuyConfirmDescription', {
+-                  gift: lang('GiftUnique', { title: uniqueGift.title, number: uniqueGift.number }),
++                  gift: uniqueGift.number ? lang('GiftUnique', { title: uniqueGift.title, number: uniqueGift.number }) : uniqueGift.title,
+                   stars: confirmPrice?.currency === TON_CURRENCY_CODE
+                     ? formatTonAsText(lang, confirmPrice.amount)
+                     : formatStarsAsText(lang, confirmPrice.amount),
+@@ -955,7 +958,7 @@ const GiftInfoModal = ({
+             && (
+               <p>
+                 {lang('GiftBuyForPeerConfirmDescription', {
+-                  gift: lang('GiftUnique', { title: uniqueGift.title, number: uniqueGift.number }),
++                  gift: uniqueGift.number ? lang('GiftUnique', { title: uniqueGift.title, number: uniqueGift.number }) : uniqueGift.title,
+                   stars: confirmPrice?.currency === TON_CURRENCY_CODE
+                     ? formatTonAsText(lang, confirmPrice.amount)
+                     : formatStarsAsText(lang, confirmPrice.amount),
+@@ -990,20 +993,7 @@ const GiftInfoModal = ({
+               </div>
+             </div>
+           )}
+-          {!uniqueGift.resaleTonOnly && (
+-            <>
+-              <Checkbox
+-                className={styles.checkBox}
+-                label={lang('LabelPayInGram')}
+-                checked={shouldPayInTon}
+-                onCheck={setShouldPayInTon}
+-              />
+-
+-              <div className={styles.checkBoxDescription}>
+-                {lang('DescriptionPayInGram')}
+-              </div>
+-            </>
+-          )}
++          {/* Greengram: Stars only, no paying in Gram */}
+         </ConfirmDialog>
+       )}
+       {savedGift && (
+diff --git a/src/components/modals/gift/resale/GiftResalePriceComposerModal.tsx b/src/components/modals/gift/resale/GiftResalePriceComposerModal.tsx
+index ae24a220..7c812370 100644
+--- a/src/components/modals/gift/resale/GiftResalePriceComposerModal.tsx
++++ b/src/components/modals/gift/resale/GiftResalePriceComposerModal.tsx
+@@ -20,7 +20,6 @@ import useLang from '../../../../hooks/useLang';
+ import useLastCallback from '../../../../hooks/useLastCallback';
+ 
+ import Button from '../../../ui/Button';
+-import Checkbox from '../../../ui/Checkbox';
+ import InputText from '../../../ui/InputText';
+ import Modal from '../../../ui/Modal';
+ 
+@@ -55,7 +54,7 @@ const GiftResalePriceComposerModal = ({
+   const isOpen = Boolean(modal);
+   // Kept as typed, so that a price in Grams turns into nanotons without a float in between
+   const [priceText, setPriceText] = useState('');
+-  const [isPriceInTon, setIsPriceInTon] = useState(false);
++  const [isPriceInTon] = useState(false);
+ 
+   const renderingModal = useCurrentOrPrev(modal);
+   const { gift: typeGift } = renderingModal || {};
+@@ -167,16 +166,7 @@ const GiftResalePriceComposerModal = ({
+         )}
+       </div>
+ 
+-      <Checkbox
+-        className={styles.checkBox}
+-        label={lang('OnlyAcceptGram')}
+-        checked={isPriceInTon}
+-        onCheck={setIsPriceInTon}
+-      />
+-
+-      <div className={styles.checkBoxDescription}>
+-        {lang('OnlyAcceptGramDescription')}
+-      </div>
++      {/* Greengram: listings are in Stars only */}
+ 
+       <Button inline noForcedUpperCase disabled={!isPriceCorrect} onClick={handleSellGift}>
+         {isPriceCorrect && lang('ButtonSellGift', {
+diff --git a/src/components/modals/gift/transfer/GiftTransferModal.tsx b/src/components/modals/gift/transfer/GiftTransferModal.tsx
+index 18d09c79..b65a7e8c 100644
+--- a/src/components/modals/gift/transfer/GiftTransferModal.tsx
++++ b/src/components/modals/gift/transfer/GiftTransferModal.tsx
+@@ -32,6 +32,8 @@ type StateProps = {
+ 
+ type Categories = 'withdraw';
+ 
++const IS_BLOCKCHAIN_TRANSFER_AVAILABLE = false;
++
+ const GiftTransferModal = ({
+   modal, contactIds, currentUserId,
+ }: OwnProps & StateProps) => {
+@@ -64,7 +66,8 @@ const GiftTransferModal = ({
+   const relevantFoundIds = currentResultsQuery === searchQuery ? foundIds : undefined;
+ 
+   const categories = useMemo(() => {
+-    if (searchQuery) return MEMO_EMPTY_ARRAY;
++    // Greengram: nothing goes on a blockchain, so no "Send via Blockchain"
++    if (searchQuery || !IS_BLOCKCHAIN_TRANSFER_AVAILABLE) return MEMO_EMPTY_ARRAY;
+ 
+     return [{
+       type: 'withdraw',
+diff --git a/src/components/modals/paidReaction/PaidReactionModal.module.scss b/src/components/modals/paidReaction/PaidReactionModal.module.scss
+index e10a9985..e4659aad 100644
+--- a/src/components/modals/paidReaction/PaidReactionModal.module.scss
++++ b/src/components/modals/paidReaction/PaidReactionModal.module.scss
+@@ -156,3 +156,26 @@
+   font-size: 0.875rem;
+   color: var(--color-text-secondary);
+ }
++
++.customAmountInput {
++  position: relative;
++
++  :global(.input-group) {
++    margin-bottom: 0;
++  }
++
++  :global(.form-control) {
++    padding-left: 2rem;
++  }
++}
++
++.customAmountIcon {
++  position: absolute;
++  z-index: 1;
++  top: 50%;
++  left: 0.75rem;
++  transform: translateY(-50%);
++
++  font-size: 1rem;
++  color: var(--color-star, #ffb727);
++}
+diff --git a/src/components/modals/paidReaction/PaidReactionModal.tsx b/src/components/modals/paidReaction/PaidReactionModal.tsx
+index c8431a32..698589d6 100644
+--- a/src/components/modals/paidReaction/PaidReactionModal.tsx
++++ b/src/components/modals/paidReaction/PaidReactionModal.tsx
+@@ -39,6 +39,8 @@ import Modal from '../../ui/Modal';
+ import Separator from '../../ui/Separator';
+ import BalanceBlock from '../stars/BalanceBlock';
+ import StarSlider from './StarSlider';
++import ConfirmDialog from '../../ui/ConfirmDialog';
++import InputText from '../../ui/InputText';
+ 
+ import styles from './PaidReactionModal.module.scss';
+ 
+@@ -92,6 +94,10 @@ const PaidReactionModal = ({
+   const [isTouched, markTouched, unmarkTouched] = useFlag();
+   const [shouldSendAsAnonymous, setShouldSendAsAnonymous] = useState(true);
+   const [sendAsPeerId, setSendAsPeerId] = useState(currentUserId);
++  // Greengram: any amount, not only what the slider lands on
++  const [sliderDefault, setSliderDefault] = useState(DEFAULT_STARS_AMOUNT);
++  const [isCustomAmountOpen, openCustomAmount, closeCustomAmount] = useFlag();
++  const [customAmount, setCustomAmount] = useState('');
+ 
+   const chatId = chat?.id;
+ 
+@@ -109,6 +115,22 @@ const PaidReactionModal = ({
+     markTouched();
+   });
+ 
++  const handleCustomAmountChange = useLastCallback((e: React.ChangeEvent<HTMLInputElement>) => {
++    const value = e.target.value.replace(/\D/g, '');
++    if (Number(value) > maxAmount) return;
++    setCustomAmount(value);
++  });
++
++  const handleCustomAmountSubmit = useLastCallback(() => {
++    const value = Number(customAmount);
++    if (!value) return;
++    setStarsAmount(value);
++    setSliderDefault(value);
++    markTouched();
++    setCustomAmount('');
++    closeCustomAmount();
++  });
++
+   useEffect(() => {
+     if (chatId && !sendPaidReactionsAsPeerIds) {
+       loadSendPaidReactionsAs({ chatId });
+@@ -286,7 +308,9 @@ const PaidReactionModal = ({
+     return result.slice(0, MAX_TOP_REACTORS);
+   }, [isTouched, message?.reactions?.topReactors, starsAmount, sendAsPeerId, shouldSendAsAnonymous]);
+ 
+-  const chatTitle = chat && getPeerTitle(lang, chat);
++  // Greengram: the Stars go to whoever wrote the message, not the chat
++  const authorPeer = message?.senderId ? selectPeer(getGlobal(), message.senderId) : undefined;
++  const chatTitle = (authorPeer || chat) && getPeerTitle(lang, (authorPeer || chat)!);
+ 
+   return (
+     <Modal
+@@ -306,9 +330,11 @@ const PaidReactionModal = ({
+ 
+       <StarSlider
+         className={styles.slider}
+-        defaultValue={DEFAULT_STARS_AMOUNT}
++        defaultValue={sliderDefault}
+         maxValue={maxAmount}
+         onChange={handleAmountChange}
++        onCustomValueClick={openCustomAmount}
++        shouldAllowCustomValue
+       />
+       <h3 className={styles.title}>{lang('StarsReactionTitle')}</h3>
+       <div className={styles.description}>
+@@ -364,6 +390,25 @@ const PaidReactionModal = ({
+           withNodes: true,
+         })}
+       </p>
++      <ConfirmDialog
++        isOpen={isCustomAmountOpen}
++        title="Custom amount"
++        confirmLabel="Set"
++        isConfirmDisabled={!Number(customAmount)}
++        confirmHandler={handleCustomAmountSubmit}
++        onClose={closeCustomAmount}
++      >
++        <div className={styles.customAmountInput}>
++          <Icon name="star" className={styles.customAmountIcon} />
++          <InputText
++            value={customAmount}
++            onChange={handleCustomAmountChange}
++            placeholder={`1 - ${maxAmount}`}
++            inputMode="numeric"
++            teactExperimentControlled
++          />
++        </div>
++      </ConfirmDialog>
+     </Modal>
+   );
+ };
+diff --git a/src/components/modals/stars/StarTopupOptionList.tsx b/src/components/modals/stars/StarTopupOptionList.tsx
+index 8cfb81b5..7474dd57 100644
+--- a/src/components/modals/stars/StarTopupOptionList.tsx
++++ b/src/components/modals/stars/StarTopupOptionList.tsx
+@@ -27,6 +27,7 @@ type OwnProps = {
+   selectedStarCount?: number;
+   starsNeeded?: number;
+   className?: string;
++  formatPrice?: (option: ApiStarTopupOption | ApiStarGiveawayOption) => string;
+   onClick: (option: ApiStarTopupOption | ApiStarGiveawayOption) => void;
+ };
+ 
+@@ -37,6 +38,7 @@ const StarTopupOptionList = ({
+   selectedStarOption,
+   selectedStarCount,
+   starsNeeded,
++  formatPrice,
+   onClick,
+ }: OwnProps) => {
+   const lang = useLang();
+@@ -70,7 +72,8 @@ const StarTopupOptionList = ({
+       }
+       result.push({
+         option,
+-        starsCount: Math.min(currentStackedStarsCount, MAX_STARS_COUNT),
++        // Greengram: an extended first tier would count none, every tile gets at least one
++        starsCount: Math.max(1, Math.min(currentStackedStarsCount, MAX_STARS_COUNT)),
+         isWide: index === options.length - 1,
+       });
+     });
+@@ -110,7 +113,7 @@ const StarTopupOptionList = ({
+               </div>
+             </div>
+             <div className={styles.optionBottom}>
+-              {formatCurrency(lang, option.amount, option.currency)}
++              {formatPrice ? formatPrice(option) : formatCurrency(lang, option.amount, option.currency)}
+             </div>
+             {(isActiveOption || (selectedStarOption && 'winners' in selectedStarOption))
+               && Boolean(perUserStarCount) && (
+diff --git a/src/components/modals/stars/StarsBalanceModal.module.scss b/src/components/modals/stars/StarsBalanceModal.module.scss
+index 005f9fa5..c770892f 100644
+--- a/src/components/modals/stars/StarsBalanceModal.module.scss
++++ b/src/components/modals/stars/StarsBalanceModal.module.scss
+@@ -7,6 +7,10 @@ $content-padding-bottom: 1rem;
+   --modal-content-block-padding: 0;
+ }
+ 
++.overPremium {
++  z-index: calc(var(--z-modal) + 1);
++}
++
+ .header {
+   isolation: isolate;
+   position: relative;
+diff --git a/src/components/modals/stars/StarsBalanceModal.tsx b/src/components/modals/stars/StarsBalanceModal.tsx
+index 6da951d1..5a5c62d3 100644
+--- a/src/components/modals/stars/StarsBalanceModal.tsx
++++ b/src/components/modals/stars/StarsBalanceModal.tsx
+@@ -11,7 +11,7 @@ import { PAID_MESSAGES_PURPOSE, STARS_CURRENCY_CODE, TON_CURRENCY_CODE } from '.
+ import { requestMutation } from '../../../lib/fasterdom/fasterdom';
+ import { getChatTitle, getUserFullName } from '../../../global/helpers';
+ import { getPeerTitle } from '../../../global/helpers/peers';
+-import { selectChat, selectIsPremiumPurchaseBlocked, selectUser } from '../../../global/selectors';
++import { selectChat, selectIsPremiumPurchaseBlocked, selectTabState, selectUser } from '../../../global/selectors';
+ import { selectSharedSettings } from '../../../global/selectors/sharedState.ts';
+ import buildClassName from '../../../util/buildClassName';
+ import { convertTonFromNanos, convertTonToUsd, formatCurrencyAsString } from '../../../util/formatCurrency';
+@@ -33,9 +33,9 @@ import TabList, { type TabWithProperties } from '../../ui/TabList';
+ import Transition from '../../ui/Transition';
+ import ParticlesHeader from '../common/ParticlesHeader.tsx';
+ import BalanceBlock from './BalanceBlock';
+-import StarTopupOptionList from './StarTopupOptionList';
+ import StarsSubscriptionItem from './subscription/StarsSubscriptionItem';
+ import StarsTransactionItem from './transaction/StarsTransactionItem';
++import WalletStarsPurchase from './WalletStarsPurchase';
+ import Island, { IslandDescription, IslandTitle } from '@gili/layout/Island';
+ import Modal, {
+   ModalCloseButton, ModalHeader, ModalHeaderAction, ModalTitle,
+@@ -61,16 +61,18 @@ type StateProps = {
+   starsBalanceState?: GlobalState['stars'];
+   tonBalanceState?: GlobalState['ton'];
+   canBuyPremium?: boolean;
++  isOverPremiumModal?: boolean;
+   tonUsdRate?: number;
+   animationLevel: AnimationLevel;
+ };
+ 
+ const StarsBalanceModal = ({
+-  modal, starsBalanceState, tonBalanceState, canBuyPremium, tonUsdRate, animationLevel,
++  modal, starsBalanceState, tonBalanceState, canBuyPremium, isOverPremiumModal, tonUsdRate, animationLevel,
+ }: OwnProps & StateProps) => {
+   const {
+     closeStarsBalanceModal, loadStarsTransactions, loadStarsSubscriptions, openStarsGiftingPickerModal, openInvoice,
+     openWalletModal,
++    openChatByUsername,
+   } = getActions();
+ 
+   const isTon = modal?.currency === TON_CURRENCY_CODE;
+@@ -204,14 +206,11 @@ const StarsBalanceModal = ({
+             {lang('TelegramStarsGift')}
+           </Button>
+         )}
+-        {areBuyOptionsShown && starsBalanceState?.topupOptions && (
+-          <Island>
+-            <StarTopupOptionList
+-              starsNeeded={starsNeeded}
+-              options={starsBalanceState.topupOptions}
+-              onClick={handleBuyStars}
+-            />
+-          </Island>
++        {areBuyOptionsShown && (
++          <WalletStarsPurchase
++            starsNeeded={starsNeeded}
++            onDone={shouldOpenOnBuy ? closeStarsBalanceModal : hideBuyOptions}
++          />
+         )}
+         {areBuyOptionsShown && <IslandDescription>{tosText}</IslandDescription>}
+       </>
+@@ -244,6 +243,9 @@ const StarsBalanceModal = ({
+             )}`}
+           </div>
+         )}
++        <Button pill onClick={handleTonTopUp}>
++          Open Wallet
++        </Button>
+       </>
+     );
+   };
+@@ -268,6 +270,11 @@ const StarsBalanceModal = ({
+ 
+   // The wallet's native dialog would cover this modal, so the wallet is closed while it is open. When the wallet
+   // opened it, leaving reopens the wallet.
++  const handleTonTopUp = useLastCallback(() => {
++    closeStarsBalanceModal();
++    openChatByUsername({ username: 'wallet', shouldStartMainApp: true });
++  });
++
+   const handleClose = useLastCallback(() => {
+     closeStarsBalanceModal();
+ 
+@@ -353,7 +360,7 @@ const StarsBalanceModal = ({
+       header={header}
+       width="slim"
+       height="auto"
+-      dialogClassName={styles.dialog}
++      dialogClassName={buildClassName(styles.dialog, isOverPremiumModal && styles.overPremium)}
+       noContentInlinePadding
+       noScrollable
+       onClose={handleClose}
+@@ -452,6 +459,7 @@ export default memo(withGlobal<OwnProps>(
+       starsBalanceState: global.stars,
+       tonBalanceState: global.ton,
+       canBuyPremium: !selectIsPremiumPurchaseBlocked(global),
++      isOverPremiumModal: Boolean(selectTabState(global).premiumModal?.isOpen),
+       tonUsdRate: global.appConfig.tonUsdRate,
+       animationLevel: selectSharedSettings(global).animationLevel,
+     };
+diff --git a/src/components/modals/stars/WalletStarsPurchase.module.scss b/src/components/modals/stars/WalletStarsPurchase.module.scss
+new file mode 100644
+index 00000000..27466c52
+--- /dev/null
++++ b/src/components/modals/stars/WalletStarsPurchase.module.scss
+@@ -0,0 +1,28 @@
++.root {
++  display: flex;
++  flex-direction: column;
++  gap: 0.5rem;
++  align-self: stretch;
++
++  margin-top: 1rem;
++  margin-inline: 0.5rem;
++
++  text-align: start;
++}
++
++.hint {
++  margin: 0 0 0.5rem;
++  font-size: 0.875rem;
++  color: var(--color-text-secondary);
++}
++
++.result {
++  margin: 0 0 0.5rem;
++  text-align: center;
++}
++
++.error {
++  margin: 0 0 0.5rem;
++  font-size: 0.875rem;
++  color: var(--color-error);
++}
+diff --git a/src/components/modals/stars/WalletStarsPurchase.tsx b/src/components/modals/stars/WalletStarsPurchase.tsx
+new file mode 100644
+index 00000000..8d16e4df
+--- /dev/null
++++ b/src/components/modals/stars/WalletStarsPurchase.tsx
+@@ -0,0 +1,284 @@
++import { memo, useEffect, useMemo, useState } from '@teact';
++import { getActions } from '../../../global';
++
++import type { ApiStarTopupOption } from '../../../api/types';
++
++import useLastCallback from '../../../hooks/useLastCallback';
++
++import Island from '@gili/layout/Island';
++
++import Button from '../../ui/Button';
++import InputText from '../../ui/InputText';
++import Select from '../../ui/Select';
++import StarTopupOptionList from './StarTopupOptionList';
++
++import styles from './WalletStarsPurchase.module.scss';
++
++
++type Asset = {
++  asset: string;
++  name: string;
++  balance: string;
++  marketAvailable: boolean;
++  starsPerCoin?: string;
++  maxStars?: number;
++};
++
++type Quote = {
++  quoteId: string;
++  asset: string;
++  amount: string;
++  stars: number;
++  expiresAt: number;
++};
++
++type OwnProps = {
++  starsNeeded?: number;
++  onDone: NoneToVoidFunction;
++};
++
++const MAX_CUSTOM_STARS = 1000000000;
++
++const STAR_TIERS = [
++  { stars: 50, isExtended: true },
++  { stars: 100 },
++  { stars: 150, isExtended: true },
++  { stars: 250 },
++  { stars: 350, isExtended: true },
++  { stars: 500 },
++  { stars: 750, isExtended: true },
++  { stars: 1000 },
++  { stars: 1500, isExtended: true },
++  { stars: 2500 },
++  { stars: 5000, isExtended: true },
++  { stars: 10000, isExtended: true },
++  { stars: 25000, isExtended: true },
++];
++
++const coinName = (code: string) => (code === 'TON' ? 'GRAM' : code);
++
++async function callApi<T>(path: string, body?: object): Promise<T> {
++  const slot = new URLSearchParams(self.location.search).get('account');
++  const response = await fetch(`/api/stars/crypto/${path}`, {
++    method: body ? 'POST' : 'GET',
++    credentials: 'same-origin',
++    headers: { 'Content-Type': 'application/json', ...(slot && { 'X-Greengram-Account': slot }) },
++    body: body && JSON.stringify(body),
++  });
++  const result = await response.json().catch(() => undefined);
++  if (!response.ok) throw new Error(result?.error || 'Wallet is unavailable. Try again.');
++  return result;
++}
++
++const WalletStarsPurchase = ({ starsNeeded, onDone }: OwnProps) => {
++  const { loadStarStatus, openChatByUsername, closeStarsBalanceModal } = getActions();
++
++  const [assets, setAssets] = useState<Asset[] | undefined>();
++  const [code, setCode] = useState<string>('');
++  const [quote, setQuote] = useState<Quote | undefined>();
++  const [bought, setBought] = useState<number | undefined>();
++  const [isBusy, setIsBusy] = useState(false);
++  const [error, setError] = useState<string | undefined>();
++  const [customAmount, setCustomAmount] = useState('');
++
++  const selected = assets?.find((item) => item.asset === code);
++  const rate = Number(selected?.starsPerCoin);
++  const customStars = Number(customAmount);
++  const isCustomValid = /^\d+$/.test(customAmount) && Number.isSafeInteger(customStars)
++    && customStars >= 1 && customStars <= MAX_CUSTOM_STARS;
++  const canBuyCustom = isCustomValid && Boolean(selected?.marketAvailable)
++    && (typeof selected?.maxStars !== 'number' || customStars <= selected.maxStars);
++  const customPrice = isCustomValid && Number.isFinite(rate) && rate > 0
++    ? `${(customStars / rate).toLocaleString(undefined, { maximumSignificantDigits: 6 })} ${coinName(code)}`
++    : undefined;
++
++  const options = useMemo(() => {
++    const tiers: { stars: number; isExtended?: boolean }[] = [...STAR_TIERS];
++    if (!selected?.marketAvailable || !rate) return [];
++    if (starsNeeded && starsNeeded > 0 && !tiers.some((tier) => tier.stars === starsNeeded)) {
++      tiers.push({ stars: starsNeeded });
++      tiers.sort((a, b) => a.stars - b.stars);
++    }
++    return tiers
++      .filter((tier) => selected.maxStars === undefined || tier.stars <= selected.maxStars)
++      .map((tier) => ({ ...tier, amount: tier.stars / rate, currency: selected.asset }));
++  }, [selected, rate, starsNeeded]) as ApiStarTopupOption[];
++
++  const formatPrice = useLastCallback((option: { amount: number; currency: string }) => (
++    `${option.amount.toLocaleString(undefined, { maximumSignificantDigits: 6 })} ${coinName(option.currency)}`
++  ));
++
++  const load = useLastCallback(async () => {
++    let options: { assets: Asset[] };
++    let list: Asset[];
++    setIsBusy(true);
++    setError(undefined);
++    try {
++      options = await callApi<{ assets: Asset[] }>('options');
++      list = [...options.assets].sort((a, b) => Number(Number(b.balance) > 0) - Number(Number(a.balance) > 0));
++      setAssets(list);
++      setCode((current) => (list.some((item) => item.asset === current) ? current : list[0]?.asset || ''));
++    } catch (err) {
++      setError((err as Error).message);
++    } finally {
++      setIsBusy(false);
++    }
++  });
++
++  useEffect(() => {
++    load();
++  }, [load]);
++
++  const handleOption = useLastCallback(async (option: { stars: number }) => {
++    if (isBusy || !selected) return;
++    setIsBusy(true);
++    setError(undefined);
++    try {
++      setQuote(await callApi<Quote>('quote', { asset: selected.asset, stars: option.stars }));
++    } catch (err) {
++      setError((err as Error).message);
++    } finally {
++      setIsBusy(false);
++    }
++  });
++
++  const handleCustomChange = useLastCallback((e: React.ChangeEvent<HTMLInputElement>) => {
++    setCustomAmount(e.currentTarget.value);
++    setError(undefined);
++  });
++
++  const handleCustomBuy = useLastCallback(() => {
++    if (isBusy || !canBuyCustom) return;
++    handleOption({ stars: customStars });
++  });
++
++  const handleCustomKeyDown = useLastCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
++    if (e.key !== 'Enter') return;
++    e.preventDefault();
++    handleCustomBuy();
++  });
++
++  const handleConfirm = useLastCallback(async () => {
++    let result: { stars: number };
++    if (isBusy || !quote) return;
++    setIsBusy(true);
++    setError(undefined);
++    try {
++      result = await callApi<{ stars: number }>('purchase', { quoteId: quote.quoteId });
++      setBought(result.stars);
++      setQuote(undefined);
++      loadStarStatus();
++    } catch (err) {
++      setQuote(undefined);
++      setError((err as Error).message);
++    } finally {
++      setIsBusy(false);
++    }
++  });
++
++  const handleEdit = useLastCallback(() => {
++    setQuote(undefined);
++    setError(undefined);
++  });
++
++  const handleOpenWallet = useLastCallback(() => {
++    closeStarsBalanceModal();
++    openChatByUsername({ username: 'wallet', shouldStartMainApp: true });
++  });
++
++  if (bought !== undefined) {
++    return (
++      <div className={styles.root}>
++        <p className={styles.result} role="status">{`${bought.toLocaleString()} Stars added.`}</p>
++        <Button fluid onClick={onDone}>Done</Button>
++      </div>
++    );
++  }
++
++  if (quote) {
++    return (
++      <div className={styles.root}>
++        <p className={styles.result} role="status">
++          {`Pay ${quote.amount} ${coinName(quote.asset)} for ${quote.stars.toLocaleString()} Stars.`}
++          <br />
++          {`The price holds until ${new Date(quote.expiresAt * 1000).toLocaleTimeString()}.`}
++        </p>
++        {error && <p className={styles.error} role="alert">{error}</p>}
++        <Button fluid isLoading={isBusy} disabled={isBusy} onClick={handleConfirm}>Confirm purchase</Button>
++        <Button fluid isText noForcedUpperCase disabled={isBusy} onClick={handleEdit}>Back</Button>
++      </div>
++    );
++  }
++
++  return (
++    <div className={styles.root}>
++      {!assets && !error && <p className={styles.hint}>Loading Wallet balances and prices…</p>}
++      {assets && (
++        <>
++          <Select
++            id="wallet-stars-asset"
++            label="Pay with Wallet"
++            value={code}
++            hasArrow
++            onChange={(e) => {
++              setCode(e.currentTarget.value);
++              setError(undefined);
++            }}
++          >
++            {assets.map((item) => (
++              <option value={item.asset} key={item.asset}>
++                {`${item.name} · ${item.balance} ${coinName(item.asset)}`}
++              </option>
++            ))}
++          </Select>
++          <InputText
++            id="wallet-stars-custom-amount"
++            label="Custom amount"
++            inputMode="numeric"
++            value={customAmount}
++            disabled={isBusy}
++            onChange={handleCustomChange}
++            onKeyDown={handleCustomKeyDown}
++          />
++          {customAmount && !isCustomValid && (
++            <p className={styles.hint}>Enter a whole number from 1 to 1,000,000,000 Stars.</p>
++          )}
++          {isCustomValid && typeof selected?.maxStars === 'number' && customStars > selected.maxStars && (
++            <p className={styles.hint}>
++              {`This balance covers up to ${selected.maxStars.toLocaleString()} Stars.`}
++            </p>
++          )}
++          <Button fluid disabled={isBusy || !canBuyCustom} onClick={handleCustomBuy}>
++            {customPrice ? `Review purchase · ≈ ${customPrice}` : 'Review purchase'}
++          </Button>
++          {Boolean(options.length) && (
++            <Island>
++              <StarTopupOptionList
++                key={code}
++                options={options}
++                starsNeeded={starsNeeded}
++                formatPrice={formatPrice}
++                onClick={handleOption}
++              />
++            </Island>
++          )}
++          {selected && !selected.marketAvailable && (
++            <p className={styles.hint}>This currency has no price right now. Try again shortly.</p>
++          )}
++          {selected?.marketAvailable && !options.length && (
++            <p className={styles.hint}>
++              {selected.maxStars
++                ? `This balance covers up to ${selected.maxStars.toLocaleString()} Stars.`
++                : `You have no ${coinName(code)} in your Wallet.`}
++            </p>
++          )}
++        </>
++      )}
++      {error && <p className={styles.error} role="alert">{error}</p>}
++      {!assets && error && <Button fluid disabled={isBusy} onClick={load}>Try again</Button>}
++      <Button fluid isText noForcedUpperCase onClick={handleOpenWallet}>Open Wallet</Button>
++    </div>
++  );
++};
++
++export default memo(WalletStarsPurchase);
+diff --git a/src/components/modals/stars/gift/StarsGiftModal.module.scss b/src/components/modals/stars/gift/StarsGiftModal.module.scss
+index bd674fad..ffc8b5ff 100644
+--- a/src/components/modals/stars/gift/StarsGiftModal.module.scss
++++ b/src/components/modals/stars/gift/StarsGiftModal.module.scss
+@@ -119,3 +119,10 @@
+     max-width: 100% !important;
+   }
+ }
++
++.customAmount {
++  display: flex;
++  flex-direction: column;
++  gap: 0.5rem;
++  margin-top: 1rem;
++}
+diff --git a/src/components/modals/stars/gift/StarsGiftModal.tsx b/src/components/modals/stars/gift/StarsGiftModal.tsx
+index 5698067d..bac70017 100644
+--- a/src/components/modals/stars/gift/StarsGiftModal.tsx
++++ b/src/components/modals/stars/gift/StarsGiftModal.tsx
+@@ -13,6 +13,7 @@ import { getPeerTitle } from '../../../../global/helpers/peers';
+ import {
+   selectUser,
+ } from '../../../../global/selectors';
++import { STARS_CURRENCY_CODE } from '../../../../config';
+ import buildClassName from '../../../../util/buildClassName';
+ import { formatCurrencyAsString } from '../../../../util/formatCurrency';
+ import renderText from '../../../common/helpers/renderText';
+@@ -23,6 +24,8 @@ import useLastCallback from '../../../../hooks/useLastCallback';
+ 
+ import Avatar from '../../../common/Avatar';
+ import SafeLink from '../../../common/SafeLink';
++import Button from '../../../ui/Button';
++import InputText from '../../../ui/InputText';
+ import Modal from '../../../ui/Modal';
+ import StarTopupOptionList from '../StarTopupOptionList';
+ 
+@@ -58,6 +61,7 @@ const StarsGiftModal = ({
+ 
+   const [selectedOption, setSelectedOption] = useState<ApiStarTopupOption | undefined>();
+   const [isHeaderHidden, setIsHeaderHidden] = useState(true);
++  const [customAmount, setCustomAmount] = useState('');
+ 
+   useEffect(() => {
+     if (!isOpen) {
+@@ -120,6 +124,26 @@ const StarsGiftModal = ({
+     closeStarsGiftModal();
+   });
+ 
++  // Greengram: any amount, not only the tiers; the server checks the limit and the balance
++  const customStars = Number(customAmount);
++  const isCustomValid = Number.isInteger(customStars) && customStars > 0;
++
++  const handleCustomChange = useLastCallback((e: React.ChangeEvent<HTMLInputElement>) => {
++    setCustomAmount(e.target.value.replace(/\D/g, '').slice(0, 9));
++  });
++
++  const handleCustomSend = useLastCallback(() => {
++    if (!user || !isCustomValid) return;
++
++    openInvoice({
++      type: 'starsgift',
++      userId: user.id,
++      stars: customStars,
++      currency: STARS_CURRENCY_CODE,
++      amount: customStars,
++    });
++  });
++
+   function renderGiftTitle() {
+     if (renderingModal?.isCompleted) {
+       return user ? renderText(
+@@ -190,6 +214,20 @@ const StarsGiftModal = ({
+             options={renderingModal?.starsGiftOptions}
+             onClick={handleClick}
+           />
++          {user && (
++            <div className={styles.customAmount}>
++              <InputText
++                label="Custom amount"
++                inputMode="numeric"
++                value={customAmount}
++                onChange={handleCustomChange}
++                teactExperimentControlled
++              />
++              <Button fluid disabled={!isCustomValid} onClick={handleCustomSend}>
++                {isCustomValid ? `Send \u2605${customStars.toLocaleString(lang.code)}` : 'Enter an amount'}
++              </Button>
++            </div>
++          )}
+           <div className={styles.secondaryInfo}>
+             {bottomText}
+           </div>
+diff --git a/src/components/right/statistics/BoostStatistics.module.scss b/src/components/right/statistics/BoostStatistics.module.scss
+index c93b7a14..28da881f 100644
+--- a/src/components/right/statistics/BoostStatistics.module.scss
++++ b/src/components/right/statistics/BoostStatistics.module.scss
+@@ -100,6 +100,25 @@
+ .boostSection {
+   display: flex;
+   flex-direction: column-reverse;
++
++  // Greengram: Transition measures a tab the first time it shows while it is still
++  // absolute at 100% height, so it pins itself to the old tab's height (0 when that
++  // tab was empty) and the list draws over the sections below. Once the slide is
++  // done, let it take its content's height.
++  > :global(.Transition:not([class*='Transition-slide'])) {
++    flex-basis: auto !important;
++    height: auto !important;
++  }
++
++  > :global(.Transition) {
++    overflow: hidden;
++  }
++
++  // The tabs stick to the top while the list scrolls under them; avatars and badges
++  // in the rows sit at z-index 1-2 and would draw over them
++  > :global(.SquareTabList) {
++    z-index: 3;
++  }
+ }
+ 
+ .primaryLink {
+diff --git a/src/config.ts b/src/config.ts
+index 20e5c862..f415bf51 100644
+--- a/src/config.ts
++++ b/src/config.ts
+@@ -343,9 +343,15 @@ export const SUPPORTED_TRANSLATION_LANGUAGES = [
+ export const RE_LINK_TEMPLATE = '((ftp|https?):\\/\\/)?((www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z][-a-zA-Z0-9]{1,62})\\b([-a-zA-Z0-9()@:%_+.,~#?&/=]*)';
+ export const RE_MENTION_TEMPLATE = '(@[\\w\\d_-]+)';
+ export const RE_TG_LINK = /^tg:(\/\/)?/i;
+-export const RE_TME_LINK = /^(https?:\/\/)?(?:([-a-zA-Z0-9@:%_+~#=]{1,32}\.)?t\.me|telegram\.(?:me|dog))(?=[:/?#]|$)/i;
++// Greengram: this instance's own links count as t.me links, except the pages it serves itself
++const INSTANCE_LINK = `${self.location.host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
++  + '(?!/(?:admin|login|fragment|username|number|wallet|stickers|botfather|bots|premium|link|api|m|__greengram|__miniapps)(?:[/?#]|$))';
++export const RE_TME_LINK = new RegExp(
++  `^(https?:\\/\\/)?(?:([-a-zA-Z0-9@:%_+~#=]{1,32}\\.)?t\\.me|telegram\\.(?:me|dog)|${INSTANCE_LINK})(?=[:/?#]|$)`,
++  'i',
++);
+ export const RE_TELEGRAM_LINK = /^(https?:\/\/)?telegram\.org\//i;
+-export const TME_LINK_PREFIX = 'https://t.me/';
++export const TME_LINK_PREFIX = `${self.location.origin}/`;
+ export const BOT_FATHER_USERNAME = 'botfather';
+ // Gram Wallet
+ export const WALLET_BOT_USERNAME = 'walt';
+@@ -374,7 +380,7 @@ export const MESSAGE_ID_REQUIRED_ERROR = 'MESSAGE_ID_REQUIRED';
+ export const PURCHASE_USERNAME = 'auction';
+ export const ACCEPTABLE_USERNAME_ERRORS = new Set([USERNAME_PURCHASE_ERROR, 'USERNAME_INVALID']);
+ export const TME_WEB_DOMAINS = new Set([
+-  't.me', 'telegram.me', 'telegram.dog', 'web.t.me', 'a.t.me', 'k.t.me', 'z.t.me',
++  't.me', 'telegram.me', 'telegram.dog', 'web.t.me', 'a.t.me', 'k.t.me', 'z.t.me', self.location.hostname,
+ ]);
+ export const WEB_APP_PLATFORM = 'weba';
+ export const LANG_PACK = 'weba';
+diff --git a/src/global/actions/api/initial.ts b/src/global/actions/api/initial.ts
+index 4df492bc..d11d046b 100644
+--- a/src/global/actions/api/initial.ts
++++ b/src/global/actions/api/initial.ts
+@@ -251,7 +251,11 @@ addActionHandler('signOut', async (global, actions, payload): Promise<void> => {
+ 
+   const targetAccountSlot = getFirstLoggedInAccountSlot() || 1;
+   if (targetAccountSlot !== (ACCOUNT_SLOT || 1)) {
+-    window.location.replace(getAccountSlotUrl(targetAccountSlot));
++    const url = getAccountSlotUrl(targetAccountSlot);
++    window.location.replace(url);
++    // Greengram: the screens closing after the reset step history back,
++    // which cancels this navigation and leaves the dead slot on screen
++    setTimeout(() => window.location.replace(url), 500);
+     return;
+   }
+ 
+diff --git a/src/global/actions/api/messages.ts b/src/global/actions/api/messages.ts
+index 53a5b091..dfc82452 100644
+--- a/src/global/actions/api/messages.ts
++++ b/src/global/actions/api/messages.ts
+@@ -50,7 +50,7 @@ import {
+ import { ensureProtocol } from '../../../util/browser/url';
+ import { IS_IOS } from '../../../util/browser/windowEnvironment';
+ import { copyTextToClipboardFromPromise } from '../../../util/clipboard';
+-import { isDeepLink } from '../../../util/deepLinkParser';
++import { instanceLinkToDeepLink, isDeepLink } from '../../../util/deepLinkParser';
+ import { getCurrentTabId } from '../../../util/establishMultitabRole';
+ import generateUniqueId from '../../../util/generateUniqueId';
+ import {
+@@ -2333,6 +2333,12 @@ async function loadViewportMessages<T extends GlobalState>(
+     }
+   }
+ 
++  // Greengram: the dialog from requestChatUpdate can land after this answer.
++  // Without a thread the ids below are dropped and the chat spins for good.
++  if (threadId === MAIN_THREAD_ID && !selectThreadInfo(global, chatId, threadId)) {
++    global = updateThreadInfo(global, { isCommentsInfo: false, chatId, threadId });
++  }
++
+   global = addChatMessagesById(global, chatId, byId);
+   global = isOutlying
+     ? updateOutlyingLists(global, chatId, threadId, ids)
+@@ -3092,6 +3098,15 @@ addActionHandler('openUrl', async (global, actions, payload): Promise<void> => {
+   const urlWithProtocol = ensureProtocol(url);
+   const parsedUrl = new URL(urlWithProtocol);
+ 
++  const instanceLink = !ignoreDeepLinks && instanceLinkToDeepLink(urlWithProtocol);
++  if (instanceLink) {
++    actions.closeStoryViewer({ tabId });
++    actions.closePaymentModal({ tabId });
++
++    actions.openTelegramLink({ url: instanceLink, linkContext, tabId });
++    return;
++  }
++
+   if (!ignoreDeepLinks && isDeepLink(urlWithProtocol)) {
+     actions.closeStoryViewer({ tabId });
+     actions.closePaymentModal({ tabId });
+diff --git a/src/global/actions/api/payments.ts b/src/global/actions/api/payments.ts
+index d938dbc2..da01e392 100644
+--- a/src/global/actions/api/payments.ts
++++ b/src/global/actions/api/payments.ts
+@@ -47,6 +47,7 @@ import {
+   selectPaymentCredentialsData,
+   selectPaymentInputInvoice,
+   selectPaymentRequestId,
++  selectPeer,
+   selectProviderPublicToken,
+   selectProviderPublishableKey,
+   selectStarsPayment,
+@@ -169,7 +170,9 @@ addActionHandler('sendStarGift', (global, actions, payload): ActionReturnType =>
+     shouldUpgrade: shouldUpgrade || undefined,
+   };
+ 
+-  payInputStarInvoice(global, inputInvoice, buildStarsAmount(gift.stars), tabId);
++  // Greengram: the form prices the upgrade too, so expect it or it reads as a price change
++  const price = gift.stars + (shouldUpgrade && gift.upgradeStars ? gift.upgradeStars : 0);
++  payInputStarInvoice(global, inputInvoice, buildStarsAmount(price), tabId);
+ });
+ 
+ addActionHandler('buyStarGift', (global, actions, payload): ActionReturnType => {
+@@ -381,6 +384,10 @@ addActionHandler('sendStarPaymentForm', async (global, actions, payload): Promis
+     tabId,
+   });
+   actions.loadStarStatus();
++  // Greengram: the catalog is only loaded at startup, so a limited gift would still show the count before this buy
++  if (inputInvoice.type === 'stargift') {
++    actions.loadStarGifts();
++  }
+ });
+ 
+ async function sendStripeCredentials<T extends GlobalState>(
+@@ -1126,7 +1133,8 @@ addActionHandler('transferGift', (global, actions, payload): ActionReturnType =>
+     gift, recipientId, transferStars, tabId = getCurrentTabId(),
+   } = payload;
+ 
+-  const peer = selectChat(global, recipientId);
++  // Greengram: someone found by search has a user but no chat yet
++  const peer = selectPeer(global, recipientId);
+ 
+   const requestSavedGift = getRequestInputSavedStarGift(global, gift);
+   if (!peer || !requestSavedGift) {
+diff --git a/src/global/actions/api/stars.ts b/src/global/actions/api/stars.ts
+index 57f8e027..7f09a17d 100644
+--- a/src/global/actions/api/stars.ts
++++ b/src/global/actions/api/stars.ts
+@@ -283,6 +283,14 @@ addActionHandler('loadResaleGifts', async (global, actions, payload): Promise<vo
+   });
+ 
+   if (!result) {
++    // Greengram: a failed page left isLoading set, the header said "Loading..."
++    // for good and no later filter could load
++    global = getGlobal();
++    tabState = selectTabState(global, tabId);
++    global = updateTabState(global, {
++      resaleGifts: { ...tabState.resaleGifts, isLoading: false },
++    }, tabId);
++    setGlobal(global);
+     return;
+   };
+ 
+diff --git a/src/global/actions/api/symbols.ts b/src/global/actions/api/symbols.ts
+index 17baaf03..2901092d 100644
+--- a/src/global/actions/api/symbols.ts
++++ b/src/global/actions/api/symbols.ts
+@@ -784,6 +784,25 @@ async function loadStickers<T extends GlobalState>(
+     return;
+   }
+ 
++  // Greengram: the server answers an unknown name with an empty set, not an error:
++  // the apps retry errors on their built-in names. A link to it shouldn't offer "Add 0 stickers"
++  if ('shortName' in stickerSetInfo && !stickerSet.stickers.length) {
++    Object.values(global.byTabId).forEach(({ id: tabId }) => {
++      if (selectTabState(global, tabId).openedStickerSetShortName === stickerSetInfo.shortName) {
++        global = updateTabState(global, { openedStickerSetShortName: undefined }, tabId);
++      }
++    });
++    setGlobal(global);
++    actions.showNotification({
++      message: {
++        key: 'StickerPackErrorNotFound',
++        options: { withNodes: true, withMarkdown: true, renderTextFilters: ['br', 'links'] },
++      },
++      tabId: getCurrentTabId(),
++    });
++    return;
++  }
++
+   const { set, stickers, packs } = stickerSet;
+ 
+   global = updateStickerSet(global, set.id, { ...set, stickers, packs });
+diff --git a/src/global/actions/apiUpdaters/initial.ts b/src/global/actions/apiUpdaters/initial.ts
+index 483fba10..50108a2c 100644
+--- a/src/global/actions/apiUpdaters/initial.ts
++++ b/src/global/actions/apiUpdaters/initial.ts
+@@ -132,6 +132,19 @@ function onUpdateApiReady<T extends GlobalState>(global: T) {
+   void retryLocalization(selectSharedSettings(global).language);
+ }
+ 
++// Greengram: sign-in lives on the instance's /login page. The worker only
++// asks for a phone number when the browser has no session; send people
++// there, at most once a minute so a broken session can't loop.
++function openGreengramLogin() {
++  const KEY = 'greengram-login-redirect';
++  const last = Number(sessionStorage.getItem(KEY)) || 0;
++  // #login is Add Account asking for it; /login never comes back with it
++  if (Date.now() - last < 60000 && window.location.hash !== '#login') return;
++  sessionStorage.setItem(KEY, String(Date.now()));
++  const slot = new URLSearchParams(window.location.search).get('account');
++  window.location.replace(`/login?next=chat${slot ? `&account=${encodeURIComponent(slot)}` : ''}`);
++}
++
+ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: ApiUpdateAuthorizationState) {
+   const wasAuthReady = global.auth.state === 'authorizationStateReady';
+   const authState = update.authorizationState;
+@@ -144,6 +157,10 @@ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: Ap
+   global = getGlobal();
+ 
+   switch (authState) {
++    case 'authorizationStateWaitPhoneNumber':
++    case 'authorizationStateWaitQrCode':
++      openGreengramLogin();
++      break;
+     case 'authorizationStateLoggingOut':
+       void forceWebsync(false);
+ 
+@@ -179,6 +196,7 @@ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: Ap
+       setGlobal(global);
+       break;
+     case 'authorizationStateReady': {
++      sessionStorage.removeItem('greengram-login-redirect');
+       if (wasAuthReady) {
+         break;
+       }
+@@ -195,6 +213,19 @@ function onUpdateAuthorizationState<T extends GlobalState>(global: T, update: Ap
+       });
+       setGlobal(global);
+ 
++      // Greengram: the main screen shows while the session is still being
++      // signed in (see App.tsx), and the folder list asked for its folders
++      // on mount, before the key was signed in. Ask again now.
++      getActions().loadChatFolders();
++      // Greengram: the main screen shows before sign-in ends (see App.tsx). A
++      // search typed by then was refused, and nothing asks again until it changes.
++      Object.values(global.byTabId).forEach(({ id: tabId }) => {
++        const { query, chatId } = selectTabState(global, tabId).globalSearch;
++        if (!query || chatId) return;
++        getActions().setGlobalSearchQuery({ query, tabId });
++        getActions().searchMessagesGlobal({ type: 'text', shouldResetResultsByType: true, tabId });
++      });
++
+       break;
+     }
+   }
+@@ -319,4 +350,6 @@ function onUpdateCurrentUser<T extends GlobalState>(global: T, update: ApiUpdate
+ 
+   updateSessionUserId(currentUser.id);
+   finishWebLogin(currentUser.id);
++  // Greengram: a new account has no Saved Messages dialog yet, and forwarding there needs the chat
++  getActions().fetchChat({ chatId: currentUser.id });
+ }
+diff --git a/src/global/actions/apiUpdaters/messages.ts b/src/global/actions/apiUpdaters/messages.ts
+index b319b184..582ab34f 100644
+--- a/src/global/actions/apiUpdaters/messages.ts
++++ b/src/global/actions/apiUpdaters/messages.ts
+@@ -449,8 +449,11 @@ addActionHandler('apiUpdate', (global, actions, update): ActionReturnType => {
+       }
+ 
+       const chatListType = chat?.folderId === ARCHIVED_FOLDER_ID ? 'archived' : 'active';
++      // Greengram: a gift can be the first message of a chat, with no other
++      // update to bring that chat into the list
++      const isGiftAction = ['starGift', 'giftPremium', 'giftStars', 'giftTon'].includes(newMessage.content.action?.type || '');
+       const shouldRestoreChatInList = (
+-        !isLocal && !isActionMessage(newMessage) && !chat?.isNotJoined
++        !isLocal && (!isActionMessage(newMessage) || isGiftAction) && !chat?.isNotJoined
+         && !selectIsChatListed(global, chatId, chatListType)
+       );
+       if (shouldRestoreChatInList && chat) {
+@@ -968,6 +971,11 @@ addActionHandler('apiUpdate', (global, actions, update): ActionReturnType => {
+       global = updateThreadReadState(global, chatId, threadId, readState);
+       setGlobal(global);
+ 
++      // another session read it: the new unread count only comes with the topic
++      if (readState.lastReadInboxMessageId && selectTopic(global, chatId, threadId)) {
++        actions.loadTopicById({ chatId, topicId: Number(threadId) });
++      }
++
+       break;
+     }
+ 
+diff --git a/src/global/actions/apiUpdaters/misc.ts b/src/global/actions/apiUpdaters/misc.ts
+index 2fe777f9..5c24da31 100644
+--- a/src/global/actions/apiUpdaters/misc.ts
++++ b/src/global/actions/apiUpdaters/misc.ts
+@@ -82,6 +82,8 @@ addActionHandler('apiUpdate', (global, actions, update): ActionReturnType => {
+ 
+     case 'updateConfig':
+       actions.loadConfig();
++      // Greengram: a freeze or unfreeze has to show now, not at the next refetch
++      actions.loadAppConfig();
+       break;
+ 
+     case 'updateAiComposeTones':
+diff --git a/src/global/actions/apiUpdaters/payments.ts b/src/global/actions/apiUpdaters/payments.ts
+index 5ae43f71..152ecdca 100644
+--- a/src/global/actions/apiUpdaters/payments.ts
++++ b/src/global/actions/apiUpdaters/payments.ts
+@@ -161,12 +161,15 @@ addActionHandler('apiUpdate', (global, actions, update): ActionReturnType => {
+         const starsModalState = selectTabState(global, tabId).starsGiftModal;
+ 
+         if (starsModalState?.isOpen && inputInvoice.userId === starsModalState.forUserId) {
+-          global = updateTabState(global, {
+-            starsGiftModal: {
+-              ...starsModalState,
+-              isCompleted: true,
++          // Greengram: done, like the other gift flows. The list behind would invite a second payment
++          actions.showNotification({
++            message: {
++              key: 'StarsGiftCompleted',
+             },
+-          }, tabId);
++            tabId,
++          });
++          actions.requestConfetti({ withStars: true, tabId });
++          actions.closeStarsGiftModal({ tabId });
+         }
+       }
+ 
+diff --git a/src/global/helpers/chats.ts b/src/global/helpers/chats.ts
+index 3a50f8b7..1025269b 100644
+--- a/src/global/helpers/chats.ts
++++ b/src/global/helpers/chats.ts
+@@ -396,7 +396,7 @@ export function getPeerColorCount(peer: ApiPeer) {
+   if (key === undefined) return 1;
+ 
+   const global = getGlobal();
+-  return global.peerColors?.general[key].colors?.length || 1;
++  return global.peerColors?.general[key]?.colors?.length || 1;
+ }
+ 
+ export function getPeerColorCollectibleColorCount(color: ApiPeerColorCollectible): number {
+diff --git a/src/global/shared/sharedState.worker.ts b/src/global/shared/sharedState.worker.ts
+index 6e4127bd..20647900 100644
+--- a/src/global/shared/sharedState.worker.ts
++++ b/src/global/shared/sharedState.worker.ts
+@@ -50,7 +50,9 @@ self.onconnect = (e: MessageEvent) => {
+       }
+       case 'reqGetFullState': {
+         const localState = data.localState;
+-        if (!state) {
++        // Greengram: a fresh browser's first tab only holds the defaults and never sends its changes,
++        // and the worker outlives a reload, so a saved state wins over them
++        if (!state || (state.isInitial && !localState.isInitial)) {
+           // First tab to load, use this state as the source of truth.
+           state = localState;
+         }
+diff --git a/src/index.tsx b/src/index.tsx
+index e41e6a4a..0633d9d6 100644
+--- a/src/index.tsx
++++ b/src/index.tsx
+@@ -70,7 +70,8 @@ async function init() {
+   localStorage.setItem(MULTITAB_STORAGE_KEY, '1');
+   onBeforeUnload(() => {
+     const global = getGlobal();
+-    if (Object.keys(global.byTabId).length === 1) {
++    // Greengram: leaving before initGlobal has run: no tabs in the state yet
++    if (global.byTabId && Object.keys(global.byTabId).length === 1) {
+       localStorage.removeItem(MULTITAB_STORAGE_KEY);
+     }
+   });
+diff --git a/src/lib/gramjs/Utils.ts b/src/lib/gramjs/Utils.ts
+index 2ad173f4..9d9ee3a0 100644
+--- a/src/lib/gramjs/Utils.ts
++++ b/src/lib/gramjs/Utils.ts
+@@ -212,8 +212,14 @@ export function getDC(dcId: number, downloadDC = false) {
+         ipAddress: `zws5${downloadDC ? '-1' : ''}.web.telegram.org`,
+         port: 443,
+       };
++    // Greengram: the address is never dialed (see greengramSocketURL), any
++    // DC number the instance uses is fine
+     default:
+-      throw new Error(`Cannot find the DC with the ID of ${dcId}`);
++      return {
++        id: dcId,
++        ipAddress: self.location.hostname,
++        port: 443,
++      };
+   }
+   // TODO chose based on current connection method
+   /*
+diff --git a/src/lib/gramjs/client/TelegramClient.ts b/src/lib/gramjs/client/TelegramClient.ts
+index 8047a4ea..4b535c26 100644
+--- a/src/lib/gramjs/client/TelegramClient.ts
++++ b/src/lib/gramjs/client/TelegramClient.ts
+@@ -1128,7 +1128,10 @@ class TelegramClient {
+     let size;
+     if (args.sizeType) {
+       size = this.pickFileSize([...(doc.thumbs || []), ...(doc.videoThumbs || [])], args.sizeType);
+-      if (!size && doc.mimeType.startsWith('video/')) {
++      // Greengram: no such thumb means no answer. Falling through would fetch
++      // the whole file and the caller labels it image/jpeg, which is how
++      // .tgs emoji ended up in <img> as broken images
++      if (!size && !doc.mimeType.startsWith('image/')) {
+         return undefined;
+       }
+ 
+diff --git a/src/lib/gramjs/client/auth.ts b/src/lib/gramjs/client/auth.ts
+index 48e42d40..93be94d9 100644
+--- a/src/lib/gramjs/client/auth.ts
++++ b/src/lib/gramjs/client/auth.ts
+@@ -13,6 +13,7 @@ import {
+ } from '../errors';
+ import Api from '../tl/api';
+ 
++import { greengramWebToken } from '../greengram';
+ import { sleep } from '../Helpers';
+ import { computeCheck as computePasswordSrpCheck } from '../Password';
+ import { getDisplayName } from '../Utils';
+@@ -60,12 +61,33 @@ export async function authFlow(
+   } else if ('webAuthToken' in authParams && authParams.webAuthToken) {
+     me = await signInUserWithWebToken(client, apiCredentials, authParams);
+   } else {
+-    me = await signInUserWithPreferredMethod(client, apiCredentials, authParams);
++    // Greengram: people sign in on the instance's /login page; the phone
++    // screen below only shows when there is no session, and the page
++    // sends them there (see onUpdateAuthorizationState)
++    me = await signInWithGreengramSession(client) ?? await signInUser(client, apiCredentials, authParams);
+   }
+ 
+   client._log.info(`Signed in successfully as ${getDisplayName(me)}`);
+ }
+ 
++// The apps' way in: the HTTPS session goes into auth.importAuthorization,
++// which binds this auth key to it.
++async function signInWithGreengramSession(client: TelegramClient): Promise<Api.TypeUser | undefined> {
++  try {
++    const session = await greengramWebToken();
++    if (!session) return undefined;
++    const result = await client.invoke(new Api.auth.ImportAuthorization({
++      id: BigInt(session.userId),
++      bytes: new TextEncoder().encode(session.token),
++    }));
++    return result instanceof Api.auth.Authorization ? result.user : undefined;
++  } catch (err: unknown) {
++    // signed out meanwhile, or the server refused: fall back to /login
++    client._log.error(`Greengram session sign-in failed: ${String(err)}`);
++    return undefined;
++  }
++}
++
+ export function signInUserWithPreferredMethod(
+   client: TelegramClient, apiCredentials: ApiCredentials, authParams: UserAuthParams,
+ ): Promise<Api.TypeUser> {
+diff --git a/src/lib/gramjs/extensions/HttpStream.ts b/src/lib/gramjs/extensions/HttpStream.ts
+index cb258e2a..24b06e94 100644
+--- a/src/lib/gramjs/extensions/HttpStream.ts
++++ b/src/lib/gramjs/extensions/HttpStream.ts
+@@ -1,4 +1,5 @@
+ import { concat } from '../../../util/encoding/buffer';
++import { greengramOrigin } from '../greengram';
+ 
+ const closeError = new Error('HttpStream was closed');
+ const REQUEST_TIMEOUT = 30000;
+@@ -68,12 +69,10 @@ export default class HttpStream {
+     return data;
+   }
+ 
++  // Greengram: same origin; the server has no HTTP transport yet, so this
++  // fallback fails fast instead of reaching Telegram
+   static getURL(ip: string, port: number, isTestServer?: boolean, isPremium?: boolean) {
+-    if (port === 443) {
+-      return `https://${ip}:${port}/apiw1${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
+-    } else {
+-      return `http://${ip}:${port}/apiw1${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
+-    }
++    return `${greengramOrigin()}/apiw1`;
+   }
+ 
+   connect(port: number, ip: string, isTestServer = false, isPremium = false) {
+diff --git a/src/lib/gramjs/extensions/PromisedWebSockets.ts b/src/lib/gramjs/extensions/PromisedWebSockets.ts
+index 9df8439d..043e8934 100644
+--- a/src/lib/gramjs/extensions/PromisedWebSockets.ts
++++ b/src/lib/gramjs/extensions/PromisedWebSockets.ts
+@@ -1,6 +1,7 @@
+ import { Mutex } from 'async-mutex';
+ 
+ import { concat } from '../../../util/encoding/buffer';
++import { greengramSocketURL } from '../greengram';
+ 
+ const closeError = new Error('WebSocket was closed');
+ const CONNECTION_TIMEOUT = 3000;
+@@ -78,12 +79,9 @@ export default class PromisedWebSockets {
+     return toReturn;
+   }
+ 
++  // Greengram: every DC is the server that served the page
+   getWebSocketLink(ip: string, port: number, isTestServer?: boolean, isPremium?: boolean) {
+-    if (port === 443) {
+-      return `wss://${ip}:${port}/apiws${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
+-    } else {
+-      return `ws://${ip}:${port}/apiws${isTestServer ? '_test' : ''}${isPremium ? '_premium' : ''}`;
+-    }
++    return greengramSocketURL();
+   }
+ 
+   connect(port: number, ip: string, isTestServer = false, isPremium = false) {
+diff --git a/src/lib/gramjs/greengram.ts b/src/lib/gramjs/greengram.ts
+new file mode 100644
+index 00000000..b200c960
+--- /dev/null
++++ b/src/lib/gramjs/greengram.ts
+@@ -0,0 +1,99 @@
++// Greengram: this build talks to the server that served it. The MTProto
++// key comes from the instance's discovery document instead of being
++// compiled in, so one build works for any instance; the page itself comes
++// from that origin, so pinning buys nothing extra here.
++
++import { SERVER_KEYS } from './crypto/RSA';
++import { readBigIntFromBuffer } from './Helpers';
++
++type Discovery = { dc: number; publicKey: string; fingerprint: string };
++
++let instance: Promise<Discovery> | undefined;
++
++export function greengramOrigin() {
++  return self.location.origin;
++}
++
++// same host and port as the page, wss when the page is https
++export function greengramSocketURL() {
++  return `${self.location.protocol === 'https:' ? 'wss' : 'ws'}://${self.location.host}/apiws`;
++}
++
++// RSA PUBLIC KEY (PKCS#1): SEQUENCE { INTEGER n, INTEGER e }
++function parsePKCS1(pem: string) {
++  const der = Uint8Array.from(atob(pem.replace(/-----[^-]+-----|\s/g, '')), (c) => c.charCodeAt(0));
++  let pos = 0;
++  const length = () => {
++    let len = der[pos++];
++    if (len & 0x80) {
++      let n = len & 0x7f;
++      len = 0;
++      while (n--) len = len * 256 + der[pos++];
++    }
++    return len;
++  };
++  const integer = () => {
++    if (der[pos++] !== 0x02) throw new Error('greengram: bad RSA key');
++    const len = length();
++    const value = der.slice(pos, pos + len);
++    pos += len;
++    return readBigIntFromBuffer(value, false, false);
++  };
++  if (der[pos++] !== 0x30) throw new Error('greengram: bad RSA key');
++  length();
++  const n = integer();
++  const e = integer();
++  return { n, e: Number(e) };
++}
++
++export function loadGreengramInstance() {
++  if (!instance) {
++    instance = (async () => {
++      const response = await fetch(`${greengramOrigin()}/.well-known/greengram-gateway.json`);
++      if (!response.ok) throw new Error(`greengram: discovery ${response.status}`);
++      const doc = await response.json() as Discovery;
++      SERVER_KEYS.set(BigInt(doc.fingerprint), parsePKCS1(doc.publicKey));
++      return doc;
++    })();
++    instance.catch(() => { instance = undefined; });
++  }
++  return instance;
++}
++
++// Add Account runs in ?account=N, and the worker is named after it (see
++// worker/connector.ts). Slot N has its own cookie, sessionN.
++function accountSlot() {
++  return new URLSearchParams(self.name).get('account') ?? undefined;
++}
++
++// The browser's Greengram session (HttpOnly cookie), handed back by the
++// server so it can go into auth.importAuthorization. undefined: signed out.
++export function greengramWebToken() {
++  return fetchWebToken(accountSlot());
++}
++
++// Add Account used to sign slot N in with slot 1's cookie. auth.logOut ends
++// the session, which would sign slot 1 out with it, so such a slot only
++// drops its key.
++export async function isBorrowedGreengramSession(userId?: string) {
++  if (!accountSlot() || !userId) return false;
++  try {
++    if (await greengramWebToken()) return false;
++    return (await fetchWebToken())?.userId === userId;
++  } catch {
++    return false;
++  }
++}
++
++async function fetchWebToken(slot?: string): Promise<{ token: string; userId: string } | undefined> {
++  const response = await fetch(`${greengramOrigin()}/api/auth/webtoken`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json', ...(slot && { 'X-Greengram-Account': slot }) },
++    body: '{}',
++    credentials: 'same-origin',
++  });
++  if (response.status === 401) return undefined;
++  if (!response.ok) throw new Error(`greengram: webtoken ${response.status}`);
++  const data = await response.json() as { token: string; userId: number };
++  return { token: data.token, userId: String(data.userId) };
++}
+diff --git a/src/types/language.d.ts b/src/types/language.d.ts
+index 1db16605..6d004b26 100644
+--- a/src/types/language.d.ts
++++ b/src/types/language.d.ts
+@@ -3376,6 +3376,9 @@ export interface LangPair {
+   'SettingsKeywordsLastSeen': undefined;
+   'SettingsKeywordsLogOut': undefined;
+   'SettingsSearchEmpty': undefined;
++  'ActionWalletTransferDescription': undefined;
++  'WalletRecipientEmpty': undefined;
++  'WalletRecipientNotFound': undefined;
+ }
+ 
+ export interface LangPairWithVariables<V = LangVariable> {
+@@ -5629,6 +5632,16 @@ export interface LangPairWithVariables<V = LangVariable> {
+   'PeerPickerUnknownPeer': {
+     'id': V;
+   };
++  'ActionWalletTransferText': {
++    'from': V;
++    'amount': V;
++  };
++  'ActionWalletTransferTextYou': {
++    'amount': V;
++  };
++  'GiftInfoIssuedUnlimited': {
++    'issued': V;
++  };
+ }
+ 
+ export interface LangPairPlural {
+@@ -6906,7 +6919,8 @@ export interface LangKeyGroups {
+       | 'WalletAlsoHaveEarnings'
+       | 'WalletConnectFee'
+       | 'NotificationStarsGiftSentYou'
+-      | 'PricePerMonth';
++      | 'PricePerMonth'
++      | 'ActionWalletTransferTextYou';
+     variables: 'amount';
+   };
+   'chat,user': {
+@@ -7065,6 +7079,11 @@ export interface LangKeyGroups {
+       | 'GiftInfoIssued';
+     variables: 'issued' | 'total';
+   };
++  'issued': {
++    keys:
++      | 'GiftInfoIssuedUnlimited';
++    variables: 'issued';
++  };
+   'number': {
+     keys:
+       | 'GiftInfoCollectible'
+@@ -7293,7 +7312,8 @@ export interface LangKeyGroups {
+       | 'ActionGramTransferPreview'
+       | 'ActionGramTransferPreviewYou'
+       | 'ActionGiveawayStarsStartedGroup'
+-      | 'ActionGiveawayStarsStarted';
++      | 'ActionGiveawayStarsStarted'
++      | 'ActionWalletTransferText';
+     variables: 'amount' | 'from';
+   };
+   'amount,worth': {
+diff --git a/src/types/webapp.ts b/src/types/webapp.ts
+index 2da1477f..bddc8d5c 100644
+--- a/src/types/webapp.ts
++++ b/src/types/webapp.ts
+@@ -64,6 +64,11 @@ export type SafeArea = {
+ };
+ 
+ interface WebAppInboundEventMap {
++  // Greengram: the wallet asks Web A for a transfer recipient, see WalletRecipientPicker
++  greengram_recipient_picker_probe: null;
++  greengram_recipient_picker_open: {
++    req_id: string;
++  };
+   iframe_ready: { reload_supported?: boolean };
+   web_app_data_send: { data: string };
+   web_app_setup_main_button: WebAppButtonOptions;
+@@ -166,6 +171,11 @@ interface WebAppInboundEventMap {
+ }
+ 
+ interface WebAppOutboundEventMap {
++  greengram_recipient_picker_available: null;
++  greengram_recipient_picker_closed: {
++    req_id: string;
++    user_id?: string;
++  };
+   viewport_changed: {
+     height: number;
+     width?: number;
+diff --git a/src/util/deepLinkParser.ts b/src/util/deepLinkParser.ts
+index 8ae5cc6c..d4596c51 100644
+--- a/src/util/deepLinkParser.ts
++++ b/src/util/deepLinkParser.ts
+@@ -204,7 +204,7 @@ type OAuthLinkBuilderParams = Omit<BuilderParams<OAuthLink>, 'url'> & {
+   url: string;
+ };
+ 
+-const ELIGIBLE_HOSTNAMES = new Set(['t.me', 'telegram.me', 'telegram.dog']);
++const ELIGIBLE_HOSTNAMES = new Set(['t.me', 'telegram.me', 'telegram.dog', self.location.hostname]);
+ const MAX_BOT_START_PARAMETER_LENGTH = 64;
+ // Up to nine decimals: a finer amount would round into one the link does not name
+ const RE_GRAMS_AMOUNT = /^\d+(\.\d{1,9})?$/;
+@@ -215,6 +215,25 @@ export function isDeepLink(link: string): boolean {
+   return Boolean(link.match(RE_TME_LINK) || link.match(RE_TG_LINK) || link.match(RE_TON_TRANSFER_LINK));
+ }
+ 
++// Greengram: this instance's own /addemoji/name, /addstickers/name, /u/name and
++// /+invite stand in for t.me's. Same paths the server redirects on a fresh load.
++export function instanceLinkToDeepLink(link: string): string | undefined {
++  let url: URL;
++  try {
++    url = new URL(link);
++  } catch (err) {
++    return undefined;
++  }
++  if (url.host !== window.location.host) return undefined;
++  const pack = url.pathname.match(/^\/(addemoji|addstickers)\/([A-Za-z0-9_]+)\/?$/);
++  if (pack) return `tg://${pack[1]}?set=${pack[2]}`;
++  const user = url.pathname.match(/^\/u\/([A-Za-z0-9_]+)\/?$/);
++  if (user) return `tg://resolve?domain=${user[1]}`;
++  const invite = url.pathname.match(/^\/\+([A-Za-z0-9_-]+)\/?$/);
++  if (invite) return `tg://join?invite=${invite[1]}`;
++  return undefined;
++}
++
+ export function tryParseDeepLink(link: string): DeepLink | undefined {
+   if (!isDeepLink(link)) {
+     return undefined;
+@@ -367,6 +386,8 @@ function parseHttpLink(url: URL) {
+   }
+   const queryParams = getQueryParams(url);
+   const pathParams = getPathParams(url);
++  // Greengram: help.getConfig and older messages link people as /u/name
++  if (url.hostname === self.location.hostname && pathParams[0] === 'u') pathParams.shift();
+ 
+   const deepLinkType = getHttpDeepLinkType(queryParams, pathParams);
+   switch (deepLinkType) {
+diff --git a/src/util/deeplink.ts b/src/util/deeplink.ts
+index 880d1184..15bdd855 100644
+--- a/src/util/deeplink.ts
++++ b/src/util/deeplink.ts
+@@ -218,7 +218,8 @@ export const processDeepLink = (url: string, linkContext?: LinkContext): boolean
+     protocol, searchParams, hostname,
+   } = new URL(urlToParse);
+ 
+-  if (protocol !== 'tg:') return false;
++  // Greengram: the bad-parser path above swaps the scheme, so it never was tg: here
++  if (protocol !== 'tg:' && !IS_BAD_URL_PARSER) return false;
+ 
+   const method = hostname as DeepLinkMethod;
+   const params = Object.fromEntries(searchParams);
+diff --git a/src/util/entities/username.ts b/src/util/entities/username.ts
+index 17459731..21968162 100644
+--- a/src/util/entities/username.ts
++++ b/src/util/entities/username.ts
+@@ -1,11 +1,13 @@
+-export const MIN_USERNAME_LENGTH = 3; // Some bots have 3-letter usernames
++// Greengram: admins list shorter and digit-only names on Fragment, links to them must open
++export const MIN_USERNAME_LENGTH = 1;
+ export const MIN_UPDATE_USERNAME_LENGTH = 5; // 4 letter usernames are only available on Fragment
+ export const MAX_USERNAME_LENGTH = 32;
+ export const USERNAME_REGEX = /^[a-zA-Z]\w+$/;
++const COLLECTIBLE_USERNAME_REGEX = /^\w+$/;
+ 
+ export function isUsernameValid(username: string, isUpdating?: boolean) {
+   const minUsernameLength = isUpdating ? MIN_UPDATE_USERNAME_LENGTH : MIN_USERNAME_LENGTH;
+   return username.length >= minUsernameLength
+     && username.length <= MAX_USERNAME_LENGTH
+-    && USERNAME_REGEX.test(username);
++    && (isUpdating ? USERNAME_REGEX : COLLECTIBLE_USERNAME_REGEX).test(username);
+ }
+diff --git a/src/util/folderManager.ts b/src/util/folderManager.ts
+index df4f2804..90c3f78d 100644
+--- a/src/util/folderManager.ts
++++ b/src/util/folderManager.ts
+@@ -267,6 +267,9 @@ export function updateFolderManager(global: GlobalState) {
+     affectedFolderIds = affectedFolderIds.concat(
+       updateFullyLoaded(global, isArchivedFullyLoadedChanged, isSavedFolderFullyLoadedChanged),
+     );
++    // Greengram: an account can have no chats at all, and then no chat ever
++    // marks the All folder as affected, so its list stayed on the spinner.
++    if (isAllFullyLoadedChanged) affectedFolderIds.push(ALL_FOLDER_ID);
+   }
+ 
+   if (!(
+diff --git a/src/util/formatCurrency.tsx b/src/util/formatCurrency.tsx
+index 64412dc7..7fb75476 100644
+--- a/src/util/formatCurrency.tsx
++++ b/src/util/formatCurrency.tsx
+@@ -133,12 +133,11 @@ export function formatTonInFiat(
+ }
+ 
+ export function formatTonAsCurrency(nanos: bigint, locale: string = FALLBACK_LANG_CODE) {
+-  return new Intl.NumberFormat(locale, {
+-    style: 'currency',
+-    currency: TON_CURRENCY_CODE,
++  // Greengram: the coin is called GRAM here, Intl would print its TON code
++  return `${new Intl.NumberFormat(locale, {
+     minimumFractionDigits: 0,
+     maximumFractionDigits: 10,
+-  }).format(convertTonFromNanos(nanos));
++  }).format(convertTonFromNanos(nanos))} GRAM`;
+ }
+ 
+ export function formatCurrencyAsString(
+diff --git a/src/util/localization/index.ts b/src/util/localization/index.ts
+index 360b0d68..5ebfe59b 100644
+--- a/src/util/localization/index.ts
++++ b/src/util/localization/index.ts
+@@ -505,7 +505,8 @@ function getString(langKey: LangKey, count: number) {
+     ? (langPackStringValue[pluralSuffix] ?? langPackStringValue.other)
+     : langPackStringValue;
+ 
+-  return string;
++  // Greengram: "t.me/username" in the texts means this instance
++  return string.includes('t.me/') ? string.replaceAll('t.me/', `${self.location.host}/`) : string;
+ }
+ 
+ function processVariable(value: TeactNode | LangFnParametersShape<LangFnOptions>) {
+diff --git a/src/util/themeStyle.ts b/src/util/themeStyle.ts
+index 088e1bf5..e48acd53 100644
+--- a/src/util/themeStyle.ts
++++ b/src/util/themeStyle.ts
+@@ -19,6 +19,7 @@ export const FALLBACK_THEME_PARAMS: ApiThemeParameters = {
+   subtitle_text_color: '#707579',
+   destructive_text_color: '#e53935',
+   section_separator_color: '#c8c6cc',
++  bottom_bar_bg_color: '#ffffff',
+ };
+ 
+ export function extractCurrentThemeParams(): ApiThemeParameters {
+@@ -61,6 +62,8 @@ export function extractCurrentThemeParams(): ApiThemeParameters {
+     subtitle_text_color: subtitleTextColor,
+     destructive_text_color: destructiveTextColor,
+     section_separator_color: sectionSeparatorColor,
++    // Greengram: without it the wallet's SDK falls back to its light palette, whatever the theme
++    bottom_bar_bg_color: bgColor,
+   };
+ }
+ 
+diff --git a/src/util/walletTransfer.ts b/src/util/walletTransfer.ts
+new file mode 100644
+index 00000000..ec2a5877
+--- /dev/null
++++ b/src/util/walletTransfer.ts
+@@ -0,0 +1,14 @@
++import type { LangFn } from './localization';
++
++import { TON_CURRENCY_CODE } from '../config';
++import { formatTonAsIcon } from './localization/format';
++
++const NANOS_PER_COIN = 1e9;
++
++// Greengram: the server sends every coin at 9 decimals in a wallet transfer's crypto_amount
++export function formatWalletTransferAmount(lang: LangFn, nanos?: bigint, code?: string) {
++  if (!nanos) return '';
++  if (!code || code === TON_CURRENCY_CODE) return formatTonAsIcon(lang, nanos);
++
++  return `${lang.number(Number(nanos) / NANOS_PER_COIN)} ${code}`;
++}
+diff --git a/src/util/websync.ts b/src/util/websync.ts
+index 81822a96..bdeffbe2 100644
+--- a/src/util/websync.ts
++++ b/src/util/websync.ts
+@@ -28,7 +28,9 @@ const saveSync = (authed: boolean) => {
+ let lastTimeout: number | undefined;
+ 
+ export const forceWebsync = (authed: boolean) => {
+-  if (IS_TAURI) return undefined;
++  // Greengram: t.me's sign-in sync belongs to Telegram, never load it
++  const isGreengram = true;
++  if (IS_TAURI || isGreengram) return undefined;
+   const currentTs = getTs();
+ 
+   const { canRedirect, ts } = JSON.parse(localStorage.getItem(WEBSYNC_KEY) || '{}');
+diff --git a/src/components/left/main/LeftSideMenuItems.tsx b/src/components/left/main/LeftSideMenuItems.tsx
+index 14f0499a..c9dbe812 100644
+--- a/src/components/left/main/LeftSideMenuItems.tsx
++++ b/src/components/left/main/LeftSideMenuItems.tsx
+@@ -11,7 +11,6 @@ import {
+   ANIMATION_LEVEL_MIN,
+   ARCHIVED_FOLDER_ID,
+   BETA_CHANGELOG_URL,
+-  FEEDBACK_URL,
+   IS_BETA,
+   IS_TEST,
+   PRODUCTION_HOSTNAME,
+@@ -93,7 +92,6 @@ const LeftSideMenuItems = ({
+     setSharedSettingOption,
+     updatePerformanceSettings,
+     openChatByUsername,
+-    openUrl,
+     openChatWithInfo,
+     openSettingsScreen,
+     openWalletModal,
+@@ -168,11 +166,11 @@ const LeftSideMenuItems = ({
+   });
+ 
+   const handleOpenTipsChat = useLastCallback(() => {
+-    openChatByUsername({ username: lang('TelegramFeaturesUsername') });
++    openChatByUsername({ username: 'bugsbot', shouldStartMainApp: true, startApp: 'suggestions' });
+   });
+ 
+   const handleBugReportClick = useLastCallback(() => {
+-    openUrl({ url: FEEDBACK_URL });
++    openChatByUsername({ username: 'bugsbot', shouldStartMainApp: true });
+   });
+ 
+   return (
+diff --git a/src/components/common/CustomEmoji.module.scss b/src/components/common/CustomEmoji.module.scss
+index 859c1000..56107f5d 100644
+--- a/src/components/common/CustomEmoji.module.scss
++++ b/src/components/common/CustomEmoji.module.scss
+@@ -37,6 +37,10 @@
+   height: var(--custom-emoji-size) !important;
+ }
+ 
++.media, .thumb {
++  object-fit: contain;
++}
++
+ .root, .media, .thumb {
+   border-radius: var(--custom-emoji-border-radius) !important;
+ }

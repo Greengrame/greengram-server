@@ -1,0 +1,26 @@
+# builds
+/bin/
+/out/
+/greengram-server
+/greengram-server.exe
+*.test
+*.out
+
+# instance data and secrets
+/data/
+.env
+.env.*
+*.pem
+*.key
+/miniapps-bundle*.tar.gz
+
+# editors and tools
+.claude/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# admin panel
+/admin/node_modules/
+/admin/dist/

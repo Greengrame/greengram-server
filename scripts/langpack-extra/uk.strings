@@ -1,0 +1,11 @@
+"SettingsAccountDesc" = "Імʼя користувача, про себе, день народження";
+"SettingsGeneralDesc" = "Шпалери, тема, клавіатура";
+"SettingsPrivacyDesc" = "Остання активність, пароль, заблоковані";
+"SettingsDataDesc" = "Завантаження медіа, кеш";
+"SettingsPerformanceDesc" = "Анімації, переходи, автовідтворення";
+"SettingsStickersDesc" = "Наліпки, емоджі, реакції";
+"SettingsLanguageDesc" = "{language}, переклад повідомлень";
+"SettingsSessionsDesc" = "Сеанси, автоматичне завершення";
+"ActionWalletTransferText" = "{from} надсилає вам {amount}";
+"ActionWalletTransferTextYou" = "Ви надіслали {amount}";
+"ActionWalletTransferDescription" = "Надіслано через Гаманець. Торкніться, щоб відкрити.";

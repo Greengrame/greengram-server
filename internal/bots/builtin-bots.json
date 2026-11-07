@@ -1,0 +1,49 @@
+[
+  {
+    "username": "wallet",
+    "name": "Wallet",
+    "kind": "wallet",
+    "bio": "💎 Buy and send USDT, Gold, Bitcoin, GRAM and other crypto.\n🌏 Trusted by 150M users.\n🎧 24/7 support: @walt_support",
+    "description": "💎 Buy and trade USDT, Gold, Bitcoin, GRAM and other crypto.\n🌏️ Send instantly to anyone in Telegram.\n💰 Earn up to 25% on your balance.\n\nYour all-in-one crypto app, right inside Telegram.\nTrusted by 150M users worldwide.\n\n📣 News: @walt_news",
+    "buttonText": "Wallet"
+  },
+  {
+    "username": "botfather",
+    "name": "BotFather",
+    "kind": "botfather",
+    "bio": "BotFather is the one bot to rule them all. Use it to create new bot accounts and manage your existing bots.",
+    "description": "BotFather is the one bot to rule them all. Use it to create new bot accounts and manage your existing bots.\n\nAbout Telegram bots:\nhttps://core.telegram.org/bots\nBot API manual:\nhttps://core.telegram.org/bots/api\n\nContact @BotSupport if you have questions about the Bot API.",
+    "buttonText": "Open"
+  },
+  {
+    "username": "stickers",
+    "name": "Stickers",
+    "kind": "stickers",
+    "bio": "Create Telegram Stickers and get usage stats for your stickers with this bot.",
+    "description": "This bot will help you create Telegram sticker packs from pictures. It can also give you some usage stats for your stickers. Commands to start:\n/newpack – make a static PNG / WEBP sticker set\n/newvideo – make a set of WEBM video stickers\n/newanimated – make an animated TGS sticker set\n/newmasks – make a static set of masks\n/help - full list of commands",
+    "buttonText": "Open"
+  },
+  {
+    "username": "fragmebot",
+    "name": "Fragment",
+    "kind": "fragment",
+    "bio": "Buy and manage usernames and phone numbers on this instance.",
+    "description": "Open Fragment to browse, buy and sell usernames and phone numbers. Purchases use your Wallet balance.",
+    "buttonText": "Open"
+  },
+  {
+    "username": "spambot",
+    "name": "Spam Info Bot",
+    "kind": "spambot",
+    "bio": "Check whether limits apply to your account, and appeal them.",
+    "description": "If your account has been limited, this bot explains why and lets you appeal to the moderators."
+  },
+  {
+    "username": "bugsbot",
+    "name": "Bugs and Suggestions",
+    "kind": "bugsbot",
+    "bio": "Report bugs and suggest features for Greengram.",
+    "description": "Open Bugs and Suggestions to report a problem, suggest a feature, discuss cards and vote. Reports are submitted only through the miniapp.",
+    "buttonText": "Open"
+  }
+]

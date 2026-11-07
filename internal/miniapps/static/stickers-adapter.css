@@ -1,0 +1,9 @@
+.greengram-miniapp-main-button{position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:max(16px,calc((100vw - 448px)/2));right:max(16px,calc((100vw - 448px)/2));z-index:1000;min-height:48px;background:#248bda;color:#fff;border:0;border-radius:10px;font:500 16px Roboto,sans-serif;cursor:pointer}.greengram-miniapp-main-button[hidden]{display:none}body:has(.greengram-miniapp-main-button:not([hidden])) #aj_content{padding-bottom:88px}
+.js-zip-report:empty{display:none}.js-zip-report ul{margin:6px 0 0;padding:0;list-style:none;max-height:220px;overflow:auto}.js-zip-report li{overflow-wrap:anywhere;padding:2px 0}.js-zip-report summary{cursor:pointer}
+.js-zip-report{align-self:flex-start;margin:8px 14px;font-size:13px}
+/* the real page shows the bot's profile picture; this is its icon on its color */
+.tm-stickers-bot-icon{background:#2aa5ee;position:relative}.tm-stickers-bot-icon:after{content:'';position:absolute;inset:14px;background:#fff;-webkit-mask:var(--image-url-sticker) center/100% no-repeat;mask:var(--image-url-sticker) center/100% no-repeat}
+/* Telegram's picker only has still images; these are the same tile with a first frame */
+picture.tm-sticker-picker-item-img{display:block}picture.tm-sticker-picker-item-img canvas,video.tm-sticker-picker-item-img{display:block;width:100%;height:100%;object-fit:contain}
+/* the sheet has no actions for someone who does not own the pack */
+.tm-bottom-sheet:empty{display:none}

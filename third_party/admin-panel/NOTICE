@@ -1,0 +1,30 @@
+Admin panel dependencies
+
+admin/ is Greengram's own code under this repository's licence. Its npm
+packages are not copied into the repository: scripts/build-admin.sh installs
+them at the versions pinned in admin/bun.lock and bundles them into
+admin-assets/main.js and main.css. That build carries code from these
+packages, all under licences that may be combined with the AGPL-3.0:
+
+- @cloudflare/kumo 2.16.0 (MIT, Cloudflare, Inc.), which itself bundles
+  Base UI and Floating UI (MIT)
+- @phosphor-icons/react 2.1.10 (MIT, Phosphor Icons)
+- react, react-dom 19.3.1, scheduler (MIT, Meta Platforms, Inc.)
+- use-sync-external-store (MIT, Meta Platforms, Inc.)
+- echarts 6.1.0 (Apache-2.0, The Apache Software Foundation), notice below
+- zrender 6.1.0 (BSD-3-Clause, Baidu Inc.)
+- tslib (0BSD, Microsoft Corporation)
+- lottie-web 5.13.0 (MIT, Bodymovin)
+- tailwindcss 4.3.3 (MIT, Tailwind Labs, Inc.): generates main.css
+
+Build tools only, not in the output: bun, bun-plugin-tailwind (MIT). Each
+package's licence text is in its directory under admin/node_modules after
+`bun install`.
+
+Apache ECharts NOTICE:
+
+    Apache ECharts
+    Copyright 2017-2026 The Apache Software Foundation
+
+    This product includes software developed at
+    The Apache Software Foundation (https://www.apache.org/).

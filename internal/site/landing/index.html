@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{.Title}}</title>
+<meta name="description" content="Greengram is an unofficial, open-source Telegram clone. It is not affiliated with Telegram, and Greengram accounts are separate from Telegram accounts.">
+<meta property="og:title" content="{{.Title}}">
+<meta property="og:description" content="Greengram, an unofficial Telegram clone. Not affiliated with Telegram.">
+<link rel="icon" href="/branding/logo">
+<link rel="stylesheet" href="/__greengram/landing/landing.css">
+<script type="module" src="/__greengram/landing/landing.js"></script>
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="/"><img src="/branding/logo" alt="" width="28" height="28"><span>{{.Name}}</span></a>
+  <nav>
+    <a class="hide-s" href="/login?next=%2F" data-next>Web app</a>
+    <a class="pill" href="/login" data-next>Sign in</a>
+  </nav>
+</div></header>
+
+<div class="notice" role="note">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+  <p><b>Greengram is an unofficial, open-source clone of Telegram.</b> It is not affiliated with, endorsed by, or connected to Telegram. Never enter your Telegram account details here: Greengram accounts are separate.</p>
+</div>
+
+<main>
+  <section class="hero">
+    <img class="mark" src="/branding/logo" alt="" width="132" height="132">
+    <h1>{{.Name}}</h1>
+    <p class="tag">a self-hosted messenger network</p>
+    <p class="lead">Chats, groups, channels and bots on a server run by the people behind this instance. Your account lives here.</p>
+    <div class="actions">
+      <a class="btn" href="/login" data-next>Sign in</a>
+      {{- if .Signup}}
+      <a class="btn alt" href="/login?intent=register" data-next>Create account</a>
+      {{- end}}
+    </div>
+  </section>
+
+  <section class="apps">
+    <h2>Apps</h2>
+    <ul class="tiles">
+      <li><a href="/login?next=%2F" data-next>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
+        <b>{{.Name}} Web</b>
+        <span class="d">In the browser, nothing to install</span>
+        <span class="st">Open web app</span>
+      </a></li>
+      <li><a href="/download/greengram-android.apk" download>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-2.86-1.21-6.08-1.21-8.94 0L5.65 5.67c-.19-.29-.58-.38-.87-.2-.28.18-.37.54-.22.83L6.4 9.48C3.3 11.25 1.28 14.44 1 18h22c-.28-3.56-2.3-6.75-5.4-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/></svg>
+        <b>{{.Name}} for Android</b>
+        <span class="d">Native app, APK for arm64 phones</span>
+        <span class="st">Download APK</span>
+      </a></li>
+    </ul>
+  </section>
+
+  <section class="why">
+    <div><h3>Self-hosted</h3><p>The server runs on hardware its owners pick. Your chats stay on this instance.</p></div>
+    <div><h3>Its own accounts</h3><p>You sign up on this server, with its own sign-in. No SMS is sent, and nothing is shared with other services.</p></div>
+    <div><h3>The usual tools</h3><p>Private chats, groups, channels, bots, stickers and files, in the browser.</p></div>
+  </section>
+</main>
+
+<footer><div class="in">
+  <span>a Greengram server · unofficial Telegram clone, not affiliated with Telegram</span>
+  {{- if .Contact}}
+  <span>admin: {{if .ContactURL}}<a href="{{.ContactURL}}" rel="nofollow">{{.Contact}}</a>{{else}}{{.Contact}}{{end}}</span>
+  {{- end}}
+</div></footer>
+</body>
+</html>

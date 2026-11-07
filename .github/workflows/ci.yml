@@ -1,0 +1,122 @@
+name: ci
+
+# vet, the race-enabled tests and the admin panel, on GitHub's runners only.
+# Pull requests from forks run here too, with a read-only token and no
+# secrets: nothing in this workflow needs any. Draft pull requests wait until
+# they are ready. While the repository is private (hosted minutes cost money
+# there) it only runs by hand.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CGO_ENABLED: "1" # -race needs cgo
+  GREENGRAM_TEST_DATABASE_URL: postgres://greengram:greengram@localhost:5432/greengram_test?sslmode=disable
+
+jobs:
+  vet:
+    if: (!github.event.repository.private || github.event_name == 'workflow_dispatch') && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go build -trimpath -o /dev/null ./cmd/...
+
+  # The admin panel (admin/): its tests, then the build scripts/build-admin.sh
+  # makes, so a broken bundle fails here.
+  admin:
+    if: (!github.event.repository.private || github.event_name == 'workflow_dispatch') && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: admin/package.json
+      - run: bun install --frozen-lockfile
+        working-directory: admin
+      - run: bun test ./tests
+        working-directory: admin
+      - run: scripts/build-admin.sh "$RUNNER_TEMP/out"
+      - run: test -s "$RUNNER_TEMP/out/admin/index.html" && test -s "$RUNNER_TEMP/out/admin/admin-assets/main.js" && test -s "$RUNNER_TEMP/out/admin/admin-assets/main.css"
+
+  # Everything but internal/e2e: unit tests and the store tests.
+  test:
+    if: (!github.event.repository.private || github.event_name == 'workflow_dispatch') && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: greengram
+          POSTGRES_PASSWORD: greengram
+          POSTGRES_DB: greengram_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U greengram" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go test -race -count=1 -timeout 35m $(go list ./... | grep -v /internal/e2e$)
+
+  # internal/e2e is most of the suite's time, so its tests are split by name
+  # over a few runners; each test makes its own schema in the shared database.
+  e2e:
+    if: (!github.event.repository.private || github.event_name == 'workflow_dispatch') && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: greengram
+          POSTGRES_PASSWORD: greengram
+          POSTGRES_DB: greengram_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U greengram" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: build the test binary
+        run: go test -race -c -o "$RUNNER_TEMP/e2e.test" ./internal/e2e
+      - name: run shard ${{ matrix.shard }} of 4
+        working-directory: internal/e2e
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          tests=$("$RUNNER_TEMP/e2e.test" -test.list '^Test' | sort | awk -v n=4 -v i="$SHARD" '(NR - 1) % n == i' | paste -sd'|' -)
+          test -n "$tests"
+          "$RUNNER_TEMP/e2e.test" -test.count=1 -test.timeout=40m -test.run "^($tests)\$"

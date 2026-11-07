@@ -1,0 +1,359 @@
+@font-face { font-family: Roboto; src: url('/fonts/roboto.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Roboto; src: url('/fonts/roboto-medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+
+/* Web A's sign-in screen: components/auth/Auth.scss, styles/_forms.scss and
+   components/ui/Button.scss for the layout. The app redirects here instead of
+   showing it, so this is the screen people get. The colors are Greengram's,
+   the same as the home page's, so it doesn't pass for another messenger's. */
+:root {
+    --color-background: #f6f7f5;
+    --color-text: #1c201d;
+    --color-text-secondary: #5e6862;
+    --color-borders-input: #c9d1cb;
+    --color-placeholders: #a2acb4;
+    --color-primary: #1a8048;
+    --color-primary-shade-rgb: 26, 128, 72;
+    --color-error: #e53935;
+    --color-error-rgb: 229, 57, 53;
+    --color-item-hover: #ebeeea;
+    --color-default-shadow: #72727240;
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-background: #0f1210;
+        --color-text: #d5dbd6;
+        --color-text-secondary: #7c8680;
+        --color-borders-input: #2f3732;
+        --color-primary: #209B56;
+        --color-primary-shade-rgb: 32, 155, 86;
+        --color-item-hover: #171b18;
+        --color-default-shadow: #1010109c;
+    }
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+    margin: 0;
+    background: var(--color-background);
+    color: var(--color-text);
+    font: 16px/1.5 Roboto, -apple-system, BlinkMacSystemFont, 'Apple Color Emoji', 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.auth-form {
+    width: 100%;
+    max-width: 25.5rem;
+    margin: 0 auto;
+    padding: 6rem 1rem 1rem;
+    text-align: center;
+}
+
+#logo {
+    display: block;
+    width: 7.5rem;
+    height: 7.5rem;
+    margin: 0 auto 1.75rem;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+h1 { margin: 0 0 .5rem; font-size: 1.25rem; font-weight: 500; line-height: 1; }
+
+.note { margin: 0 0 2.5rem; font-size: .875rem; line-height: 1.35; color: var(--color-text-secondary); }
+
+.note:empty { margin-bottom: 1.5rem; }
+
+/* the unofficial-clone notice, on every step */
+.unofficial {
+    margin: -1rem 0 1.75rem;
+    padding: .625rem .875rem;
+    border: 1px solid #f0d68a;
+    border-radius: .75rem;
+    background: #fff7dc;
+    color: #4a3c0d;
+    font-size: .8125rem;
+    line-height: 1.45;
+    text-align: left;
+}
+.unofficial b { font-weight: 600; }
+
+@media (prefers-color-scheme: dark) {
+    .unofficial { border-color: #5a4b1c; background: #2a2412; color: #f0e2b6; }
+}
+
+.step[hidden] { display: none; }
+
+.input-group { position: relative; margin-bottom: 1.125rem; }
+
+.input-group label {
+    position: absolute;
+    top: .6875rem;
+    left: 1rem;
+    display: block;
+    padding: 0 .5rem;
+    border-radius: 1rem;
+    background-color: var(--color-background);
+    color: var(--color-placeholders);
+    font-size: 1rem;
+    font-weight: 400;
+    white-space: nowrap;
+    pointer-events: none;
+    cursor: text;
+    transform-origin: left center;
+    transition: transform .15s ease-out, color .15s ease-out;
+}
+
+.input-group.touched label,
+.input-group.error label,
+.form-control:focus ~ label,
+.form-control:-webkit-autofill ~ label { transform: scale(.75) translate(0, -2rem); }
+
+.input-group.touched label { color: var(--color-text-secondary); }
+
+.input-group.error label { color: var(--color-error) !important; }
+
+.form-control {
+    --border-width: 1px;
+    display: block;
+    width: 100%;
+    height: 3rem;
+    padding: calc(.75rem - var(--border-width)) calc(1.1875rem - var(--border-width)) .6875rem;
+    border: var(--border-width) solid var(--color-borders-input);
+    border-radius: 1rem;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.25rem;
+    overflow-wrap: anywhere;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color .15s ease;
+}
+
+.form-control:hover { border-color: var(--color-primary); }
+
+.form-control:hover ~ label { color: var(--color-primary); }
+
+.form-control:focus {
+    border-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+    caret-color: var(--color-primary);
+}
+
+.form-control:focus ~ label { color: var(--color-primary); }
+
+.error .form-control {
+    border-color: var(--color-error);
+    box-shadow: inset 0 0 0 1px var(--color-error);
+    caret-color: var(--color-error);
+}
+
+.password-input .form-control { padding-right: 3rem; }
+
+.toggle-password {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-text);
+    cursor: pointer;
+    outline: none;
+}
+
+.toggle-password:hover { opacity: .7; }
+
+.toggle-password svg { width: 1.5rem; height: 1.5rem; fill: currentColor; }
+
+.Button {
+    --button-text-color: var(--color-primary);
+    --button-background-color: transparent;
+    --button-active-background-color: rgba(var(--color-primary-shade-rgb), .08);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 3rem;
+    padding: .5rem;
+    border: 0;
+    border-radius: 1.75rem;
+    background-color: var(--button-background-color);
+    color: var(--button-text-color);
+    font: inherit;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    outline: none;
+    transition: background-color .2s, color .2s, opacity .2s;
+}
+
+.Button.primary {
+    --button-text-color: #ffffff;
+    --button-background-color: var(--color-primary);
+    --button-active-background-color: rgba(var(--color-primary-shade-rgb), .9);
+}
+
+.Button[hidden] { display: none; }
+
+.Button:not(:disabled):active, .Button:not(:disabled):focus-visible { background-color: var(--button-active-background-color); }
+
+@media (hover: hover) { .Button:not(:disabled):hover { background-color: var(--button-active-background-color); } }
+
+.Button:disabled { opacity: .5; cursor: default; }
+
+.Button.loading { gap: .75rem; opacity: 1; pointer-events: none; }
+
+.Button.loading::after {
+    content: '';
+    flex-shrink: 0;
+    width: 1.8125rem;
+    height: 1.8125rem;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.auth-button { margin-top: 2.5rem; }
+
+.auth-button + .auth-button { margin-top: .5rem; }
+
+/* Web A doesn't render Next until there's something to send */
+.auth-button[hidden] + .auth-button { margin-top: 2.5rem; }
+
+.auth-button.text + .auth-button.text { margin-top: 0; }
+
+.Button:not(.auth-button) + .auth-button { margin-top: .5rem; }
+
+.Button[hidden]:not(.auth-button) + .auth-button { margin-top: 0; }
+
+.status { margin: 0; color: var(--color-error); font-size: .875rem; line-height: 1.35; }
+
+.status:not(:empty) { margin-top: 1rem; }
+
+#cancel { margin-top: 0; }
+
+/* Web A's CountryCodeInput (components/auth/CountryCodeInput.scss, ui/Menu.scss,
+   ui/MenuItem.scss). */
+.CountryCodeInput { position: relative; }
+
+.CountryCodeInput .input-group { z-index: 1; cursor: pointer; }
+
+.CountryCodeInput input { padding-right: 2.5rem; text-overflow: ellipsis; cursor: pointer; }
+
+.css-icon-down {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: .75rem;
+    height: .75rem;
+    border: 2px solid var(--color-text-secondary);
+    border-top: 0;
+    border-left: 0;
+    transform: scaleY(1) rotate(45deg);
+    transition: transform .2s ease, top .2s ease;
+    pointer-events: none;
+}
+
+/* Web A has a Spinner in the arrow's place while the list loads */
+.CountryCodeInput.loading .css-icon-down {
+    top: .6875rem;
+    right: .75rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--color-text-secondary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    opacity: .5;
+    animation: spin 1s linear infinite;
+}
+
+.CountryCodeInput.open .css-icon-down {
+    top: 1.3125rem;
+    transform: scaleY(-1) rotate(45deg);
+    border-color: var(--color-primary);
+}
+
+.CountryCodeInput .bubble {
+    position: absolute;
+    top: 3.5rem;
+    left: 0;
+    z-index: 10;
+    width: 100%;
+    max-height: 23.5rem;
+    margin: 0;
+    padding: .5rem 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 1rem;
+    background: var(--color-background);
+    box-shadow: 0 .25rem .5rem .125rem var(--color-default-shadow);
+    transform: scale(.95);
+    transform-origin: top center;
+    opacity: 0;
+    transition: opacity 150ms cubic-bezier(.2, 0, .2, 1), transform 150ms cubic-bezier(.2, 0, .2, 1);
+}
+
+.CountryCodeInput .bubble[hidden] { display: none; }
+
+.CountryCodeInput.open .bubble { transform: scale(1); opacity: 1; }
+
+.MenuItem {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    border: 0;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    line-height: 24px;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+}
+
+@media (hover: hover) { .MenuItem:hover { background: var(--color-item-hover); } }
+
+.MenuItem.active, .MenuItem:active { background: var(--color-item-hover); }
+
+.MenuItem.selected { background: var(--color-item-hover); }
+
+.MenuItem.no-results { justify-content: center; padding: 8px 16px; font-size: 14px; cursor: default; opacity: .5; }
+
+.country-flag { margin-right: 16px; font-size: 32px; line-height: 1; }
+
+.country-flag img { display: inline-block; width: 32px; height: 32px; margin: -8px 2px; vertical-align: 4px; }
+
+.country-name { overflow: hidden; margin-right: 16px; text-overflow: ellipsis; }
+
+.country-code { margin-left: auto; padding-right: 4px; opacity: .5; }
+
+@media (min-width: 600px) {
+    h1 { font-size: 2rem; line-height: 1.5; }
+    .note { margin-bottom: 3rem; font-size: 1rem; }
+}
+
+@media (min-width: 600px) and (min-height: 450px) {
+    .auth-form { padding: 6.8125rem 1.5rem 1.5rem; }
+    #logo { width: 10rem; height: 10rem; margin-bottom: 2.5rem; }
+}

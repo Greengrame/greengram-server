@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sign in</title>
+<link rel="icon" href="/branding/logo">
+<link rel="stylesheet" href="/__greengram/login/login.css">
+<script type="module" src="/__greengram/login/login.js"></script>
+</head>
+<body>
+<main class="auth-form">
+  <img id="logo" src="/branding/logo" alt="">
+  <h1 id="title">Sign in</h1>
+  <p id="lead" class="note">Use the phone number and password of your account. No SMS is sent.</p>
+  <p class="unofficial" role="note"><b>Greengram is an unofficial, open-source clone of Telegram.</b> It is not affiliated with, endorsed by, or connected to Telegram. Never enter your Telegram account details here: Greengram accounts are separate.</p>
+
+  <form id="phone" class="form step" autocomplete="on">
+    <div class="CountryCodeInput" id="country-box">
+      <div class="input-group">
+        <input id="country" class="form-control" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="country-menu">
+        <label for="country">Country</label>
+        <i class="css-icon-down"></i>
+      </div>
+      <div class="bubble" id="country-menu" role="listbox" hidden></div>
+    </div>
+    <div class="input-group" data-errors>
+      <input id="phone-number" class="form-control" type="tel" inputmode="tel" autocomplete="tel" required>
+      <label for="phone-number">Your phone number</label>
+    </div>
+    <button class="Button primary auth-button" type="submit" data-submit hidden>Next</button>
+    <button class="Button text auth-button" type="button" id="switch-intent">Create account</button>
+    <button class="Button text auth-button" type="button" id="use-username">Log in by username</button>
+  </form>
+
+  <form id="password" class="form step" hidden>
+    <div class="input-group password-input" data-errors>
+      <input id="password-value" class="form-control" type="password" autocomplete="current-password" maxlength="256" required>
+      <label for="password-value">Password</label>
+    </div>
+    <button class="Button primary" type="submit" data-submit hidden>Next</button>
+    <button class="Button text auth-button" type="button" data-back>Use another number</button>
+  </form>
+
+  <form id="register" class="form step" hidden>
+    <div class="input-group"><input id="first-name" class="form-control" autocomplete="given-name" maxlength="64" required><label for="first-name">First Name</label></div>
+    <div class="input-group"><input id="last-name" class="form-control" autocomplete="family-name" maxlength="64"><label for="last-name">Last Name (optional)</label></div>
+    <div class="input-group"><input id="new-username" class="form-control" autocomplete="username" maxlength="32" required><label for="new-username">Username</label></div>
+    <div class="input-group password-input"><input id="new-password" class="form-control" type="password" autocomplete="new-password" minlength="10" maxlength="256" required><label for="new-password">Password (10–256 characters)</label></div>
+    <button class="Button primary" type="submit" data-submit hidden>Next</button>
+    <button class="Button text auth-button" type="button" data-back>Use another number</button>
+  </form>
+
+  <form id="username" class="form step" hidden>
+    <div class="input-group"><input id="username-value" class="form-control" autocomplete="username" required><label for="username-value">Username</label></div>
+    <div class="input-group password-input" data-errors><input id="username-password" class="form-control" type="password" autocomplete="current-password" maxlength="256" required><label for="username-password">Password</label></div>
+    <button class="Button primary" type="submit" data-submit hidden>Next</button>
+    <button class="Button text auth-button" type="button" data-back>Log in by phone number</button>
+  </form>
+
+  <p id="status" class="status" role="status"></p>
+  <a id="cancel" class="Button text auth-button" href="/" hidden>Cancel</a>
+</main>
+</body>
+</html>
