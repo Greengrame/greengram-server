@@ -84,6 +84,7 @@ GREENGRAM_ADMIN_DIR=/srv/greengram/out/admin
 | `GREENGRAM_ADMIN_DIR` | none | the admin panel build (`out/admin`); without it `/admin` says none is installed |
 | `GREENGRAM_SITE_NAME` | `Greengram` | name of the announcements account |
 | `GREENGRAM_ADMIN_CONTACT` | none | how to reach the admins, shown on the home page |
+| `GREENGRAM_DONATE` | none | a donation line for the home page footer, e.g. `Solana: <address>` |
 | `GREENGRAM_SECRET_KEY_FILE` | `<data dir>/instance-secret.key` | encrypts phone numbers; made on first start, never lose it |
 | `GREENGRAM_MINIAPPS_DIR` | `<data dir>/miniapps` | the mini apps bundle, see below |
 | `GREENGRAM_LANGPACK_DIR` | `<data dir>/langpack` | language packs, see `docs/languages.md` |
