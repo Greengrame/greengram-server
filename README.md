@@ -239,13 +239,3 @@ Greengram is made by listixx and opuadm, its co-owner.
 
 GNU Affero General Public License v3.0, see `LICENSE`. If you run a changed
 version for other people, the AGPL asks you to offer them its source.
-
-## Support the project
-
-Greengram is built and hosted by two people in their spare time. If you'd like to help with server costs, you can donate in **Solana** (SOL, or USDC on Solana):
-
-```
-HDXEwkQv4HaxdapWK96ZssbfzFrCHZPiXgNjctJ1SfZN
-```
-
-Solana network only. Coins sent on any other network are lost.
