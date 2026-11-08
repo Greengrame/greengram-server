@@ -14,6 +14,9 @@ let country;
 let filter;
 let active = -1;
 let siteName = 'Sign in';
+// the instance makes sign-up numbers up itself (signupGeneratedNumbers)
+let generated = false;
+let madeNumber = '';
 
 // next is one of the places above, or a path on this site: a link into
 // the app opened while signed out, which the server sent here.
@@ -73,7 +76,7 @@ function clearErrors() {
 // Web A leaves out the submit button until there's something to send, and
 // floats a field's label away once it has a value.
 const canSend = {
-    phone: () => $('phone-number').value.replace(/\D/g, '').length >= 4,
+    phone: () => skipsNumber() || $('phone-number').value.replace(/\D/g, '').length >= 4,
     password: () => $('password-value').value !== '',
     register: () => $('first-name').value.trim() !== '',
     username: () => $('username-value').value !== '' && $('username-password').value !== ''
@@ -84,11 +87,34 @@ function syncFields() {
     for (let [id, ready] of Object.entries(canSend)) $(id).querySelector('[data-submit]').hidden = !ready();
 }
 
+function skipsNumber() {
+    return generated && intent === 'register';
+}
+
+// sign-up takes any number, so nobody should hand over their real one
+function lead(step) {
+    if (step === 'register') return madeNumber ? `Pick a name, a username and a password. Your number is ${madeNumber.replace(/^\+888(\d{4})(\d{4})$/, '+888 $1 $2')}: sign in with it or with your username.` : 'Pick a name, a username and a password. No SMS is sent.';
+    if (step !== 'phone') return '';
+    if (skipsNumber()) return 'You get a made-up number to sign in with, so your real one is never asked for.';
+    if (intent === 'register') return "Don't use your real phone number: any number with 4–16 digits works, and no SMS is sent.";
+    return 'Use the phone number and password of your account. No SMS is sent.';
+}
+
+// with a made-up number coming there is nothing to type on the phone step
+function numberField(step) {
+    let skip = step === 'phone' && skipsNumber();
+    $('country-box').hidden = skip;
+    $('phone-number').closest('.input-group').hidden = skip;
+    $('phone-number').required = !skip;
+}
+
 function show(step) {
     for (let form of document.querySelectorAll('.step')) form.hidden = form.id !== step;
     let titles = { phone: intent === 'register' ? 'Create account' : siteName, password: 'Enter Password', register: 'Your Name', username: siteName };
     $('title').textContent = titles[step];
-    $('lead').textContent = step === 'register' ? 'Pick a name, a username and a password. No SMS is sent.' : step === 'phone' ? 'Use the phone number and password of your account. No SMS is sent.' : '';
+    $('lead').textContent = lead(step);
+    numberField(step);
+    $('register').querySelector('[data-back]').textContent = madeNumber ? 'Back' : 'Use another number';
     say('');
     syncFields();
     // like Web A, not on touch screens: the keyboard would cover the form
@@ -308,6 +334,12 @@ async function branding() {
         document.title = 'Sign in · ' + data.name;
         $('logo').src = data.logoUrl;
         siteName = data.name;
+        generated = data.generatedNumbers === true;
+        if (!$('phone').hidden) {
+            $('lead').textContent = lead('phone');
+            numberField('phone');
+            syncFields();
+        }
         if (!$('phone').hidden && intent === 'login') $('title').textContent = siteName;
         if (!$('username').hidden) $('title').textContent = siteName;
     } catch {}
@@ -316,11 +348,12 @@ async function branding() {
 $('phone').addEventListener('submit', event => {
     event.preventDefault();
     run($('phone'), async function () {
-        let phone = phoneNumber();
-        if (!/^\+[1-9][0-9]*$/.test(phone) || intent === 'register' && (phone.length < 5 || phone.length > 17)) throw new Error(intent === 'register' ? 'Enter a phone number with 4–16 digits including the country code.' : 'Enter your phone number, including its country code.');
+        let phone = skipsNumber() ? '' : phoneNumber();
+        if (!skipsNumber() && (!/^\+[1-9][0-9]*$/.test(phone) || intent === 'register' && (phone.length < 5 || phone.length > 17))) throw new Error(intent === 'register' ? 'Enter a phone number with 4–16 digits including the country code.' : 'Enter your phone number, including its country code.');
         await api('/auth/start', { mode: 'phone' });
         await api('/auth/intent', { intent });
         let result = await api('/auth/code', { phone });
+        madeNumber = result.phone || '';
         show(result.state === 'registration' ? 'register' : 'password');
     });
 });

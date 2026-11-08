@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/Greengrame/greengram-server/internal/account"
 	"github.com/Greengrame/greengram-server/internal/erase"
 	"github.com/Greengrame/greengram-server/internal/password"
 )
@@ -970,4 +971,65 @@ func (a *API) resetPassword(q *req) (any, error) {
 		return nil, err
 	}
 	return map[string]any{"ok": true, "sessionsEnded": ended}, nil
+}
+
+// resetIdentity is Reset Info: the chosen parts of a member's profile are
+// wiped (account.ResetIdentity) and the account carries on, signed in where
+// it was. Same checks as Delete Account, the typed username included. The
+// audit row names the fields and keeps the old phone masked, never whole.
+func (a *API) resetIdentity(q *req) (any, error) {
+	id, err := q.pathID("id")
+	if err != nil {
+		return nil, err
+	}
+	raw, _ := q.body["fields"].([]any)
+	var fields []string
+	for _, v := range raw {
+		f, ok := v.(string)
+		if !ok {
+			return nil, fail(400, "Choose what to reset.")
+		}
+		fields = append(fields, f)
+	}
+	confirmation, _ := q.str("confirmation")
+	var res account.Reset
+	err = a.tx(q.ctx, func(tx pgx.Tx) error {
+		t, found, err := a.loadMember(q.ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		switch {
+		case !found || t.IsSystem || t.isBot:
+			return fail(404, "Person account not found.")
+		case t.ID == q.me.ID || t.Role == "admin":
+			return fail(400, "You cannot reset your own account or another administrator here.")
+		case t.AccountState == "deleted":
+			return fail(409, "Deleted accounts cannot be restored.")
+		case confirmation != t.Username:
+			return fail(400, "Type the account username to confirm the reset.")
+		}
+		if res, err = a.Accounts.ResetIdentity(q.ctx, tx, id, fields); err != nil {
+			return err
+		}
+		return audit(q.ctx, tx, q.me.ID, "admin_identity_reset", id, res)
+	})
+	if err != nil {
+		return nil, err
+	}
+	a.Accounts.ForgetNumbers(res)
+	if a.IdentityReset != nil {
+		a.IdentityReset(id)
+	}
+	m, err := a.human(q.ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	d, err := a.detail(q, m)
+	if err != nil {
+		return nil, err
+	}
+	out := d.(map[string]any)
+	out["ok"] = true
+	out["reset"] = res
+	return out, nil
 }

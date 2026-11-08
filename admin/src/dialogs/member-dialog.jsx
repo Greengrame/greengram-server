@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Dialog, Input, InputArea, Pagination, Select, Switch, Tabs, Text } from '@cloudflare/kumo';
+import { Button, Checkbox, Dialog, Input, InputArea, Pagination, Select, Switch, Tabs, Text } from '@cloudflare/kumo';
 import { ChatCircleIcon, CrownIcon, DevicesIcon, StarIcon, UsersIcon, XIcon } from '@phosphor-icons/react';
 import { api } from '../lib/api.js';
 import { date, deviceInfo, number, paged, premiumExpiry } from '../lib/format.js';
@@ -99,7 +99,72 @@ function Identity({ id, user, detail, onClose }) {
     </div>;
 }
 
-function ProfileTab({ id, user, detail, onDetail, refresh, onClose }) {
+// what Reset Info can wipe, in the server's order (account.ResetFields)
+export const resetFields = [
+    ['phone', 'Phone number', 'A made-up +888 number replaces it and every number it could sign in with before.'],
+    ['name', 'Name', `Becomes "User" and the account id.`],
+    ['bio', 'Bio', 'Emptied.'],
+    ['username', 'Username', 'Free for anyone to take. A hidden placeholder stays, good for username sign-in.'],
+    ['photos', 'Profile photos', 'Every profile photo is removed.'],
+    ['birthday', 'Birthday', 'Removed.'],
+    ['channel', 'Profile channel', 'The channel shown on the profile is unlinked.']
+];
+
+// the picked fields in list order, unknown ones dropped
+export function resetPicked(picked = []) {
+    return resetFields.filter(([key]) => picked.includes(key)).map(([key]) => key);
+}
+
+export function resetSummary(picked = []) {
+    return resetFields.filter(([key]) => picked.includes(key)).map(([, label]) => label);
+}
+
+function ResetInfo({ id, user, onDetail, refresh }) {
+    let [picked, setPicked] = useState([]);
+    let [confirming, setConfirming] = useState(false);
+    let [confirmation, setConfirmation] = useState('');
+    let [error, setError] = useState('');
+    let [busy, setBusy] = useState(false);
+    let fields = resetPicked(picked);
+    async function submit(event) {
+        event.preventDefault();
+        setBusy(true);
+        setError('');
+        try {
+            let result = await api('/admin/users/' + id + '/reset', 'POST', { fields, confirmation });
+            onDetail(result);
+            await refresh();
+            toast(result.reset?.newPhone ? `Account info reset. New sign-in number: ${result.reset.newPhone}` : 'Account info reset.', 'success');
+        } catch (failure) { setError(failure.message); }
+        finally { setBusy(false); }
+    }
+    return <section className="flex flex-col gap-3 rounded-lg px-3 py-3 ring ring-kumo-line">
+        <div>
+            <Heading>Reset Info</Heading>
+            <Muted>Wipe personal details and keep the account. It stays signed in with the same password.</Muted>
+        </div>
+        <Checkbox.Group value={picked} onValueChange={value => { setPicked(value); setConfirming(false); setError(''); }} disabled={busy}>
+            <Checkbox.Legend className="sr-only">Fields to reset</Checkbox.Legend>
+            {resetFields.map(([key, label, note]) => <div key={key} className="flex flex-col">
+                <Checkbox.Item value={key} label={label} />
+                <small className="pl-6 text-xs text-kumo-subtle">{note}</small>
+            </div>)}
+        </Checkbox.Group>
+        {confirming ? <form className="flex flex-col gap-3 border-t border-kumo-hairline pt-3" onSubmit={submit} autoComplete="off" data-1p-ignore>
+            <p className="text-sm text-kumo-default">This resets: <strong>{resetSummary(fields).join(', ')}</strong>. The old values are gone for good.</p>
+            <Input label={`Type ${user.username} to confirm`} value={confirmation} onChange={event => setConfirmation(event.target.value)} required autoComplete="off" passwordManagerIgnore className="w-full" />
+            <Failure>{error}</Failure>
+            <div className="flex justify-end gap-2">
+                <Button type="button" size="sm" variant="secondary" onClick={() => { setConfirming(false); setConfirmation(''); setError(''); }}>Cancel</Button>
+                <Button type="submit" size="sm" variant="destructive" loading={busy} disabled={confirmation !== user.username}>Reset {fields.length === 1 ? '1 Field' : fields.length + ' Fields'}</Button>
+            </div>
+        </form> : <div className="flex justify-end">
+            <Button type="button" size="sm" variant="secondary-destructive" disabled={!fields.length} onClick={() => setConfirming(true)}>Reset Info</Button>
+        </div>}
+    </section>;
+}
+
+function ProfileTab({ id, user, me, detail, onDetail, refresh, onClose }) {
     let [values, setValues] = useState({ name: user.name || '', username: user.username || '', bio: user.bio || '', usernamePublic: user.usernamePublic !== false });
     let [error, setError] = useState('');
     let [busy, setBusy] = useState(false);
@@ -156,6 +221,7 @@ function ProfileTab({ id, user, detail, onDetail, refresh, onClose }) {
             <Failure>{error}</Failure>
             <div className="flex justify-end"><Button type="submit" variant="primary" loading={busy}>Save Profile</Button></div>
         </form>}
+        {accountState(user) === 'deleted' || user.role === 'admin' || user.id === me?.id ? null : <ResetInfo id={id} user={user} onDetail={onDetail} refresh={refresh} />}
     </div>;
 }
 

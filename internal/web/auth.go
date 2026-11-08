@@ -168,9 +168,12 @@ func (a *Auth) intent(q *req) (any, error) {
 }
 
 func (a *Auth) code(q *req) (any, error) {
-	state, err := a.Accounts.GivePhone(q.ctx, q.cookie("signin_flow"), q.str("phone"), q.client())
+	state, made, err := a.Accounts.GiveNumber(q.ctx, q.cookie("signin_flow"), q.str("phone"), q.client())
 	if err != nil {
 		return nil, err
+	}
+	if made != "" {
+		return map[string]string{"state": state, "phone": made}, nil
 	}
 	return map[string]string{"state": state}, nil
 }
