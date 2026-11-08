@@ -123,10 +123,19 @@ var (
 // GivePhone stores the number on the flow and says what comes next:
 // "password" to sign in, "registration" to create the account.
 func (s *Service) GivePhone(ctx context.Context, token, phone string, c Client) (string, error) {
+	next, _, err := s.GiveNumber(ctx, token, phone, c)
+	return next, err
+}
+
+// GiveNumber is GivePhone that also returns the number the server made up
+// for a sign-up when the instance hands numbers out (signupGeneratedNumbers);
+// whatever number came with the request is then ignored.
+func (s *Service) GiveNumber(ctx context.Context, token, phone string, c Client) (string, string, error) {
 	phone = "+" + digits(phone)
 	// before the transaction: it may need a connection of its own
-	open := s.settings.Get(ctx).RegistrationEnabled
-	var next string
+	set := s.settings.Get(ctx)
+	open := set.RegistrationEnabled
+	var next, made string
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
 		f, err := s.flow(ctx, tx, token)
 		if err != nil {
@@ -138,7 +147,13 @@ func (s *Service) GivePhone(ctx context.Context, token, phone string, c Client) 
 		next = "password"
 		if f.state == "phone_register" {
 			next = "registration"
-			if !registerPhoneRe.MatchString(phone) {
+			if set.SignupGeneratedNumbers && open {
+				var err error
+				if phone, err = s.GenerateNumber(ctx, tx); err != nil {
+					return err
+				}
+				made = phone
+			} else if !registerPhoneRe.MatchString(phone) {
 				return fail(400, "Enter a phone number with 4–16 digits including the country code.")
 			}
 			if err := collectibleCode(ctx, tx, phone); err != nil {
@@ -160,7 +175,10 @@ func (s *Service) GivePhone(ctx context.Context, token, phone string, c Client) 
 		_, err = tx.Exec(ctx, "UPDATE auth_flows SET state=$2, phone=$3 WHERE id=$1", f.id, next, enc)
 		return err
 	})
-	return next, err
+	if err != nil {
+		made = ""
+	}
+	return next, made, err
 }
 
 // SignInPhone finishes a phone flow with the password.
@@ -448,6 +466,9 @@ func (s *Service) completeTx(ctx context.Context, tx pgx.Tx, flowToken string, u
 	if err != nil {
 		return Session{}, err
 	}
+	if _, err := tx.Exec(ctx, "UPDATE users SET last_seen_at=now() WHERE id=$1", u.ID); err != nil {
+		return Session{}, err
+	}
 	return Session{Token: token, User: u}, nil
 }
 
@@ -529,3 +550,41 @@ func (s *Service) SetPassword(ctx context.Context, sessionToken, current, next s
 		return err
 	})
 }
+
+// ConfirmDeletion is the password check before account.deleteAccount: the
+// password never travels over MTProto, so the apps send it here first and
+// the session that passed may then delete the account for DeletionWindow.
+// An account without a password (imported, never set) passes as it is.
+func (s *Service) ConfirmDeletion(ctx context.Context, sessionToken, pw string, c Client) error {
+	u, hash, err := s.SessionUser(ctx, sessionToken)
+	if err != nil {
+		return err
+	}
+	if err := s.limits.hit(fmt.Sprintf("delete-account:%d:%s", u.ID, limitIP(c.IP)), 5, 10*time.Minute, s.now()); err != nil {
+		return err
+	}
+	if u.HasPassword() && (len(pw) > 256 || !password.Verify(pw, u.password)) {
+		return fail(400, "That password is not correct.")
+	}
+	_, err = s.db.Exec(ctx, "UPDATE sessions SET delete_confirmed_at=now() WHERE token_hash=$1", hash)
+	return err
+}
+
+// DeletionWindow is how long a passed ConfirmDeletion lasts.
+const DeletionWindow = 5 * time.Minute
+
+// DeletionConfirmed is whether the session passed ConfirmDeletion within
+// DeletionWindow, or the account has no password to check.
+func (s *Service) DeletionConfirmed(ctx context.Context, u User, sessionHash string) (bool, error) {
+	if !u.HasPassword() {
+		return true, nil
+	}
+	var ok bool
+	err := s.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM sessions WHERE token_hash=$1 AND user_id=$2 AND delete_confirmed_at > now() - make_interval(secs => $3))",
+		sessionHash, u.ID, DeletionWindow.Seconds()).Scan(&ok)
+	return ok, err
+}
+
+// HasPassword is whether signing in takes a password; imported accounts
+// may never have set one.
+func (u User) HasPassword() bool { return strings.HasPrefix(u.password, "$") }

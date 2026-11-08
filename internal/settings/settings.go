@@ -17,6 +17,12 @@ type Settings struct {
 	DefaultPremiumDays     int  `json:"defaultPremiumDays"`
 	QRExpirySeconds        int  `json:"qrExpirySeconds"`
 	SessionDays            int  `json:"sessionDays"`
+	// InactiveAccountDeletion runs the job that deletes accounts away for
+	// longer than their account.setAccountTTL period.
+	InactiveAccountDeletion bool `json:"inactiveAccountDeletion"`
+	// SignupGeneratedNumbers has sign-up make up a +888 number instead of
+	// asking for one, so nobody types their real phone.
+	SignupGeneratedNumbers bool `json:"signupGeneratedNumbers"`
 
 	StarsAdjustmentLimit       int `json:"starsAdjustmentLimit"`
 	StarsPerUSD                int `json:"starsPerUSD"`
@@ -33,6 +39,8 @@ func Defaults() Settings {
 		LoginAttemptsPerMinute: 15,
 		QRExpirySeconds:        120,
 		SessionDays:            7,
+
+		InactiveAccountDeletion: true,
 
 		StarsAdjustmentLimit:       1000000,
 		StarsPerUSD:                100,

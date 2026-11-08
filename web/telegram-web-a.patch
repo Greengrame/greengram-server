@@ -140,7 +140,7 @@ index ac9e529b..31456e93 100644
  
  export type ApiBotApp = {
 diff --git a/src/assets/localization/fallback.strings b/src/assets/localization/fallback.strings
-index 085994f9..b653d7c6 100644
+index 085994f..47a5351 100644
 --- a/src/assets/localization/fallback.strings
 +++ b/src/assets/localization/fallback.strings
 @@ -712,7 +712,7 @@
@@ -152,7 +152,7 @@ index 085994f9..b653d7c6 100644
  "PeerInfoReportProfilePhoto" = "Report Profile Photo";
  "MediaviewProfilePhoto" = "Profile Photo";
  "AccActionPlay" = "Play";
-@@ -4511,3 +4511,9 @@
+@@ -4511,3 +4511,15 @@
  "SettingsKeywordsLastSeen" = "online, last seen, status";
  "SettingsKeywordsLogOut" = "log out, sign out, exit";
  "SettingsSearchEmpty" = "Start typing to find a setting";
@@ -162,6 +162,12 @@ index 085994f9..b653d7c6 100644
 +"WalletRecipientEmpty" = "Type a username to find someone";
 +"WalletRecipientNotFound" = "Nobody found. Only people can receive transfers";
 +"GiftInfoIssuedUnlimited" = "{issued} issued";
++"GreengramDeleteIfAwayDescription" = "If you don't sign in at least once within this period, your account will be deleted, along with your profile, contacts and everything you own. Your messages stay in other people's chats as Deleted Account.";
++"GreengramDeleteMyAccountNow" = "Delete my account now";
++"GreengramDeleteAccountTitle" = "Delete your account?";
++"GreengramDeleteAccountText" = "This signs you out everywhere and cannot be undone. Your name, username, phone number and photos go. You leave every group and channel, and the ones you own pass to an admin. Your Stars, wallet balance, collectible gifts, usernames and numbers are not returned to you. Your messages stay in other people's chats as Deleted Account.";
++"GreengramDeleteAccountPassword" = "Your password";
++"GreengramDeleteAccountConfirm" = "Delete account";
 diff --git a/src/components/App.tsx b/src/components/App.tsx
 index 4dca0ab1..88e213ae 100644
 --- a/src/components/App.tsx
@@ -2886,10 +2892,10 @@ index 9df8439d..043e8934 100644
    connect(port: number, ip: string, isTestServer = false, isPremium = false) {
 diff --git a/src/lib/gramjs/greengram.ts b/src/lib/gramjs/greengram.ts
 new file mode 100644
-index 00000000..b200c960
+index 0000000..bd99367
 --- /dev/null
 +++ b/src/lib/gramjs/greengram.ts
-@@ -0,0 +1,99 @@
+@@ -0,0 +1,126 @@
 +// Greengram: this build talks to the server that served it. The MTProto
 +// key comes from the instance's discovery document instead of being
 +// compiled in, so one build works for any instance; the page itself comes
@@ -2989,21 +2995,54 @@ index 00000000..b200c960
 +  const data = await response.json() as { token: string; userId: number };
 +  return { token: data.token, userId: String(data.userId) };
 +}
++
++// Deleting the account asks for the sign-in password, which never goes over
++// MTProto: the server checks it here first, for this session, and then takes
++// account.deleteAccount for a few minutes.
++export async function greengramDeletionInfo(): Promise<{ hasPassword: boolean } | undefined> {
++  const slot = accountSlot();
++  const response = await fetch(`${greengramOrigin()}/api/account/deletion`, {
++    headers: slot ? { 'X-Greengram-Account': slot } : {},
++    credentials: 'same-origin',
++  });
++  if (!response.ok) return undefined;
++  const data = await response.json() as { hasPassword: boolean };
++  return { hasPassword: Boolean(data.hasPassword) };
++}
++
++export async function confirmGreengramDeletion(password: string): Promise<string | undefined> {
++  const slot = accountSlot();
++  const response = await fetch(`${greengramOrigin()}/api/account/deletion`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json', ...(slot && { 'X-Greengram-Account': slot }) },
++    body: JSON.stringify({ password }),
++    credentials: 'same-origin',
++  });
++  if (response.ok) return undefined;
++  const data = await response.json().catch(() => ({})) as { error?: string };
++  return data.error || `Error ${response.status}`;
++}
 diff --git a/src/types/language.d.ts b/src/types/language.d.ts
-index 1db16605..6d004b26 100644
+index 1db1660..029fe9f 100644
 --- a/src/types/language.d.ts
 +++ b/src/types/language.d.ts
-@@ -3376,6 +3376,9 @@ export interface LangPair {
+@@ -3376,6 +3376,15 @@ export interface LangPair {
    'SettingsKeywordsLastSeen': undefined;
    'SettingsKeywordsLogOut': undefined;
    'SettingsSearchEmpty': undefined;
 +  'ActionWalletTransferDescription': undefined;
 +  'WalletRecipientEmpty': undefined;
 +  'WalletRecipientNotFound': undefined;
++  'GreengramDeleteIfAwayDescription': undefined;
++  'GreengramDeleteMyAccountNow': undefined;
++  'GreengramDeleteAccountTitle': undefined;
++  'GreengramDeleteAccountText': undefined;
++  'GreengramDeleteAccountPassword': undefined;
++  'GreengramDeleteAccountConfirm': undefined;
  }
  
  export interface LangPairWithVariables<V = LangVariable> {
-@@ -5629,6 +5632,16 @@ export interface LangPairWithVariables<V = LangVariable> {
+@@ -5629,6 +5638,16 @@ export interface LangPairWithVariables<V = LangVariable> {
    'PeerPickerUnknownPeer': {
      'id': V;
    };
@@ -3020,7 +3059,7 @@ index 1db16605..6d004b26 100644
  }
  
  export interface LangPairPlural {
-@@ -6906,7 +6919,8 @@ export interface LangKeyGroups {
+@@ -6906,7 +6925,8 @@ export interface LangKeyGroups {
        | 'WalletAlsoHaveEarnings'
        | 'WalletConnectFee'
        | 'NotificationStarsGiftSentYou'
@@ -3030,7 +3069,7 @@ index 1db16605..6d004b26 100644
      variables: 'amount';
    };
    'chat,user': {
-@@ -7065,6 +7079,11 @@ export interface LangKeyGroups {
+@@ -7065,6 +7085,11 @@ export interface LangKeyGroups {
        | 'GiftInfoIssued';
      variables: 'issued' | 'total';
    };
@@ -3042,7 +3081,7 @@ index 1db16605..6d004b26 100644
    'number': {
      keys:
        | 'GiftInfoCollectible'
-@@ -7293,7 +7312,8 @@ export interface LangKeyGroups {
+@@ -7293,7 +7318,8 @@ export interface LangKeyGroups {
        | 'ActionGramTransferPreview'
        | 'ActionGramTransferPreviewYou'
        | 'ActionGiveawayStarsStartedGroup'
@@ -3315,3 +3354,225 @@ index 859c1000..56107f5d 100644
  .root, .media, .thumb {
    border-radius: var(--custom-emoji-border-radius) !important;
  }
+diff --git a/src/api/gramjs/methods/account.ts b/src/api/gramjs/methods/account.ts
+index f7c12b8..772120b 100644
+--- a/src/api/gramjs/methods/account.ts
++++ b/src/api/gramjs/methods/account.ts
+@@ -1,4 +1,5 @@
+ import { Api as GramJs } from '../../../lib/gramjs';
++import { confirmGreengramDeletion, greengramDeletionInfo } from '../../../lib/gramjs/greengram';
+ 
+ import type {
+   ApiAudio, ApiPeer, ApiPhoto, ApiProfileTab, ApiReportReason,
+@@ -124,6 +125,27 @@ export async function fetchAccountTTL() {
+   return buildApiAccountDays(result);
+ }
+ 
++export function fetchGreengramDeletion() {
++  return greengramDeletionInfo().catch(() => undefined);
++}
++
++// Greengram: the password check over HTTPS, then account.deleteAccount.
++// Errors come back as text for the dialog to show.
++export async function deleteGreengramAccount({ password, reason }: { password: string; reason: string }) {
++  try {
++    const refused = await confirmGreengramDeletion(password);
++    if (refused) return { error: refused };
++    const result = await invokeRequest(new GramJs.account.DeleteAccount({ reason }), {
++      shouldReturnTrue: true,
++      shouldThrow: true,
++    });
++    return result ? { ok: true as const } : { error: 'The account could not be deleted.' };
++  } catch (err: unknown) {
++    const message = err as { errorMessage?: string; message?: string };
++    return { error: message.errorMessage || message.message || 'The account could not be deleted.' };
++  }
++}
++
+ export function setAccountTTL({ days }: { days: number }) {
+   return invokeRequest(new GramJs.account.SetAccountTTL({
+     ttl: buildApiAccountDaysTTL(days),
+diff --git a/src/components/left/settings/DeleteMyAccountModal.tsx b/src/components/left/settings/DeleteMyAccountModal.tsx
+new file mode 100644
+index 0000000..e72bf24
+--- /dev/null
++++ b/src/components/left/settings/DeleteMyAccountModal.tsx
+@@ -0,0 +1,94 @@
++// Greengram: delete the account from Settings. The password is checked by
++// the instance over HTTPS (it never goes over MTProto), then
++// account.deleteAccount runs and the app signs out.
++
++import { memo, useEffect, useState } from '../../../lib/teact/teact';
++import { getActions } from '../../../global';
++
++import { callApi } from '../../../api/gramjs';
++
++import useLang from '../../../hooks/useLang';
++import useLastCallback from '../../../hooks/useLastCallback';
++
++import PasswordForm from '../../common/PasswordForm';
++import PasswordMonkey from '../../common/PasswordMonkey';
++import ConfirmDialog from '../../ui/ConfirmDialog';
++
++type OwnProps = {
++  isOpen: boolean;
++  onClose: NoneToVoidFunction;
++};
++
++const DeleteMyAccountModal = ({ isOpen, onClose }: OwnProps) => {
++  const { signOut } = getActions();
++  const lang = useLang();
++
++  const [hasPassword, setHasPassword] = useState(true);
++  const [password, setPassword] = useState('');
++  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
++  const [error, setError] = useState<string | undefined>();
++  const [isLoading, setIsLoading] = useState(false);
++
++  useEffect(() => {
++    if (!isOpen) return;
++    callApi('fetchGreengramDeletion').then((info) => {
++      if (info) setHasPassword(info.hasPassword);
++    });
++  }, [isOpen]);
++
++  const handleClose = useLastCallback(() => {
++    if (isLoading) return;
++    setPassword('');
++    setError(undefined);
++    setIsPasswordVisible(false);
++    onClose();
++  });
++
++  const handleClearError = useLastCallback(() => {
++    setError(undefined);
++  });
++
++  const handleConfirm = useLastCallback(async () => {
++    if (isLoading || (hasPassword && !password)) return;
++    setIsLoading(true);
++    setError(undefined);
++    const result = await callApi('deleteGreengramAccount', { password, reason: 'Deleted from Settings' });
++    if (!result || result.error) {
++      setIsLoading(false);
++      setError(result?.error || lang('ErrorUnexpected'));
++      return;
++    }
++    signOut({ forceInitApi: true });
++  });
++
++  return (
++    <ConfirmDialog
++      isOpen={isOpen}
++      title={lang('GreengramDeleteAccountTitle')}
++      confirmLabel={lang('GreengramDeleteAccountConfirm')}
++      confirmHandler={handleConfirm}
++      confirmIsDestructive
++      isConfirmDisabled={isLoading || (hasPassword && !password)}
++      onClose={handleClose}
++    >
++      <p>{lang('GreengramDeleteAccountText')}</p>
++      {hasPassword ? (
++        <>
++          <PasswordMonkey isPasswordVisible={isPasswordVisible} />
++          <PasswordForm
++            error={error}
++            placeholder={lang('GreengramDeleteAccountPassword')}
++            isLoading={isLoading}
++            isPasswordVisible={isPasswordVisible}
++            shouldDisablePasswordManager
++            onChangePasswordVisibility={setIsPasswordVisible}
++            onClearError={handleClearError}
++            onInputChange={setPassword}
++          />
++        </>
++      ) : error && <p className="error">{error}</p>}
++    </ConfirmDialog>
++  );
++};
++
++export default memo(DeleteMyAccountModal);
+diff --git a/src/components/left/settings/SettingsPrivacy.tsx b/src/components/left/settings/SettingsPrivacy.tsx
+index bbfe6ae..8ddd768 100644
+--- a/src/components/left/settings/SettingsPrivacy.tsx
++++ b/src/components/left/settings/SettingsPrivacy.tsx
+@@ -14,6 +14,7 @@ import { selectSharedSettings } from '../../../global/selectors/sharedState';
+ import { formatCountdown } from '../../../util/dates/duration';
+ import { getClosestEntry } from '../../../util/getClosestEntry';
+ 
++import useFlag from '../../../hooks/useFlag';
+ import useHistoryBack from '../../../hooks/useHistoryBack';
+ import useLang from '../../../hooks/useLang';
+ import useLastCallback from '../../../hooks/useLastCallback';
+@@ -23,6 +24,7 @@ import Island, { IslandTitle } from '../../gili/layout/Island';
+ import Button from '../../ui/Button';
+ import Checkbox from '../../ui/Checkbox';
+ import ListItem from '../../ui/ListItem';
++import DeleteMyAccountModal from './DeleteMyAccountModal';
+ 
+ type OwnProps = {
+   isActive?: boolean;
+@@ -144,6 +146,9 @@ const SettingsPrivacy = ({
+     openAgeVerificationModal();
+   });
+ 
++  // Greengram: deleting the account right away, next to "If away for"
++  const [isDeleteNowOpen, openDeleteNow, closeDeleteNow] = useFlag(false);
++
+   const handleOpenDeleteAccountModal = useLastCallback(() => {
+     if (!accountDaysTtl) return;
+     openDeleteAccountModal({ days: accountDaysTtl });
+@@ -519,7 +524,15 @@ const SettingsPrivacy = ({
+             {lang('Months', { count: dayOption }, { pluralValue: 1 })}
+           </span>
+         </ListItem>
++        <ListItem
++          narrow
++          destructive
++          onClick={openDeleteNow}
++        >
++          {lang('GreengramDeleteMyAccountNow')}
++        </ListItem>
+       </Island>
++      <DeleteMyAccountModal isOpen={isDeleteNowOpen} onClose={closeDeleteNow} />
+     </div>
+   );
+ };
+diff --git a/src/components/modals/deleteAccount/DeleteAccountModal.tsx b/src/components/modals/deleteAccount/DeleteAccountModal.tsx
+index 5c0b823..062fc67 100644
+--- a/src/components/modals/deleteAccount/DeleteAccountModal.tsx
++++ b/src/components/modals/deleteAccount/DeleteAccountModal.tsx
+@@ -30,7 +30,7 @@ const DeleteAccountModal = ({
+   selfDestructAccountDays,
+ }: OwnProps & StateProps) => {
+   const {
+-    closeGiftCodeModal, closeDeleteAccountModal, setAccountTTL,
++    closeDeleteAccountModal, setAccountTTL,
+   } = getActions();
+   const lang = useLang();
+   const isOpen = Boolean(modal);
+@@ -76,10 +76,10 @@ const DeleteAccountModal = ({
+     <Modal
+       isOpen={isOpen}
+       title={lang('SelfDestructTitle')}
+-      onClose={closeGiftCodeModal}
++      onClose={onCloseHandler}
+       className={styles.root}
+     >
+-      <p>{lang('SelfDestructSessionsDescription')}</p>
++      <p>{lang('GreengramDeleteIfAwayDescription')}</p>
+       <RadioGroup
+         className="dialog-checkbox-group"
+         name="quick-reaction-settings"
+diff --git a/src/lib/gramjs/tl/apiTl.ts b/src/lib/gramjs/tl/apiTl.ts
+index 2518d4d..fada890 100644
+--- a/src/lib/gramjs/tl/apiTl.ts
++++ b/src/lib/gramjs/tl/apiTl.ts
+@@ -1753,6 +1753,7 @@ account.checkUsername#2714d86c username:string = Bool;
+ account.updateUsername#3e0bdd7c username:string = User;
+ account.getPrivacy#dadbc950 key:InputPrivacyKey = account.PrivacyRules;
+ account.setPrivacy#c9f81ce8 key:InputPrivacyKey rules:Vector<InputPrivacyRule> = account.PrivacyRules;
++account.deleteAccount#a2c0cf74 flags:# reason:string password:flags.0?InputCheckPasswordSRP = Bool;
+ account.getAccountTTL#8fc711d = AccountDaysTTL;
+ account.setAccountTTL#2442485e ttl:AccountDaysTTL = Bool;
+ account.getAuthorizations#e320c158 = account.Authorizations;

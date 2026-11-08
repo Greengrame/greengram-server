@@ -42,6 +42,7 @@ const live = {
             ] }
         ]
     },
+    '/admin/circulation/gifts?page=1&size=25': { page: 1, pageSize: 25, total: 1, items: [{ id: 3, title: 'Rose <i>', emoji: '🌹', stars: 25, stock: 7, stockTotal: 10, enabled: true, sold: 5, converted: 1, upgraded: 2, heldByDeleted: 1, inCirculation: 3, holders: 2 }] },
     '/admin/broadcasts': { broadcasts: [{ id: 1, audience: 'admins', recipients: 1, actor: 'Admin', createdAt: now, text: '<b>hi</b>' }] }
 };
 
@@ -64,6 +65,7 @@ const fragment = await import(admin('views/fragment.jsx'));
 const gifts = await import(admin('views/gifts.jsx'));
 const reportsView = await import(admin('views/reports.jsx'));
 const memberDialog = await import(admin('dialogs/member-dialog.jsx'));
+const circulation = await import(admin('views/circulation.jsx'));
 const premiumDialog = await import(admin('dialogs/premium-dialog.jsx'));
 const starsDialog = await import(admin('dialogs/stars-dialog.jsx'));
 
@@ -269,4 +271,36 @@ test('reports group by target, search what was reported and act only on what is 
     expect(html).toContain('&lt;script&gt;card&lt;/script&gt;');
     expect(html).toContain('Spam or scam › Phishing');
     expect(format.auditLabel('reports_resolved')).toBe('acted on reports');
+});
+
+test('circulation pages come from the server, and the member dialog links to the lookup', () => {
+    expect(circulation.circulationTarget('#circulation/user/42')).toEqual({ tab: 'holdings', user: 42 });
+    expect(circulation.circulationTarget('#circulation/user/x')).toEqual({ tab: 'gifts', user: null });
+    expect(circulation.circulationTarget('#circulation')).toEqual({ tab: 'gifts', user: null });
+    expect(circulation.query('/admin/circulation/fragment', { page: 2, size: 25, q: '', kind: 'number', listed: true })).toBe('/admin/circulation/fragment?page=2&size=25&kind=number&listed=1');
+    expect(circulation.serverView({ page: 2, pageSize: 25, total: 30, items: [1, 2, 3, 4, 5] })).toMatchObject({ page: 2, pages: 2, from: 26, to: 30, total: 30 });
+    expect(circulation.holderLabel(null)).toBe('Instance reserve');
+    expect(circulation.holderLabel({ kind: 'user', id: 9, state: 'deleted', name: 'Deleted Account' })).toBe('Deleted Account #9');
+    expect(circulation.holderLabel({ kind: 'channel', id: 5, name: 'News', username: 'news' })).toBe('News · @news');
+    expect(circulation.stockText({ stock: null })).toBe('Unlimited');
+    expect(circulation.stockText({ stock: 7, stockTotal: 10 })).toBe('7 of 10');
+    let html = render(circulation.default);
+    expect(html).toContain('Rose &lt;i&gt;');
+    expect(html).toContain('In circulation');
+    expect(html).toContain('7 of 10');
+    expect(html).toContain('1 on deleted accounts');
+    let lines = memberDialog.identityLines({ phoneNumber: '+15550100' }, { fragment: [{ kind: 'number', title: '+8881234', displayTitle: '+888 1234', listed: true, price: '5' }, { kind: 'username', title: '@neat', listed: false }] });
+    expect(lines).toEqual([['Phone', '+15550100'], ['Fragment number', '+888 1234 · for sale, 5 GRAM'], ['Fragment username', '@neat']]);
+    expect(memberDialog.identityLines({}, {})[0]).toEqual(['Phone', 'No phone number']);
+    let payload = settings.settingsData({ ...data.settings, inactiveAccountDeletion: true }, { ...data.settings, inactiveAccountDeletion: false });
+    expect(payload.inactiveAccountDeletion).toBe(false);
+});
+
+test('reset info sends only the picked fields, in order, and says which', () => {
+    expect(memberDialog.resetPicked([])).toEqual([]);
+    expect(memberDialog.resetPicked(['bio', 'phone', 'nope'])).toEqual(['phone', 'bio']);
+    expect(memberDialog.resetSummary(['birthday', 'username'])).toEqual(['Username', 'Birthday']);
+    expect(memberDialog.resetFields.map(([key]) => key)).toEqual(['phone', 'name', 'bio', 'username', 'photos', 'birthday', 'channel']);
+    let payload = settings.settingsData({ ...data.settings, signupGeneratedNumbers: false }, { ...data.settings, signupGeneratedNumbers: true });
+    expect(payload.signupGeneratedNumbers).toBe(true);
 });

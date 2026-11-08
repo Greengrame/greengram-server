@@ -38,6 +38,8 @@ func (s *Service) sessionByHash(ctx context.Context, hash string) (User, string,
 		days := s.settings.Get(ctx).SessionDays
 		s.db.Exec(ctx, `UPDATE sessions SET last_active=now(), expires_at=now() + make_interval(days => least($2,
 			coalesce((SELECT authorization_ttl_days FROM account_prefs WHERE user_id=$3), $2))) WHERE token_hash=$1`, hash, days, u.ID)
+		// "if away for" counts from here (account.setAccountTTL)
+		s.db.Exec(ctx, "UPDATE users SET last_seen_at=now() WHERE id=$1", u.ID)
 	}
 	return u, hash, nil
 }

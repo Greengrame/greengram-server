@@ -24,6 +24,8 @@ func defaultsDoc() map[string]any {
 	return map[string]any{
 		"siteName":                   name,
 		"registrationEnabled":        true,
+		"inactiveAccountDeletion":    true,
+		"signupGeneratedNumbers":     false,
 		"messageMaxLength":           4096,
 		"groupMemberLimit":           101,
 		"sessionDays":                7,
@@ -98,10 +100,16 @@ func Check(patch map[string]any) (map[string]any, error) {
 				return nil, &Invalid{"The workspace name must contain 1–50 characters."}
 			}
 			out[k] = name
-		case "registrationEnabled":
+		case "registrationEnabled", "inactiveAccountDeletion", "signupGeneratedNumbers":
 			b, ok := v.(bool)
-			if !ok {
+			if !ok && k == "registrationEnabled" {
 				return nil, &Invalid{"Choose a valid registration policy."}
+			}
+			if !ok && k == "signupGeneratedNumbers" {
+				return nil, &Invalid{"Turn generated sign-up numbers on or off."}
+			}
+			if !ok {
+				return nil, &Invalid{"Turn inactive account deletion on or off."}
 			}
 			out[k] = b
 		default:

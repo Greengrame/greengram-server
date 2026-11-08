@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Dialog, Input, InputArea, Pagination, Select, Switch, Tabs, Text } from '@cloudflare/kumo';
+import { Button, Checkbox, Dialog, Input, InputArea, Pagination, Select, Switch, Tabs, Text } from '@cloudflare/kumo';
 import { ChatCircleIcon, CrownIcon, DevicesIcon, StarIcon, UsersIcon, XIcon } from '@phosphor-icons/react';
 import { api } from '../lib/api.js';
 import { date, deviceInfo, number, paged, premiumExpiry } from '../lib/format.js';
@@ -9,7 +9,7 @@ import { Avatar, Loading, Row, Rows } from '../components/ui.jsx';
 
 const tabs = [{ value: 'profile', label: 'Profile' }, { value: 'access', label: 'Access' }, { value: 'sessions', label: 'Devices' }, { value: 'crypto', label: 'Crypto' }, { value: 'memberships', label: 'Chats' }, { value: 'privacy', label: 'Privacy' }];
 const accessLabels = { active: 'Restore Access', frozen: 'Freeze Account', locked: 'Lock Account', suspended: 'Suspend Account', banned: 'Ban Account', deleted: 'Delete Account' };
-const accessDescriptions = { active: 'Restore sign-in and allow changes again.', frozen: 'Keep existing content readable, but prevent changes and purchases.', suspended: 'Temporarily hide this account and its message contents while preserving its data for restoration. All devices are signed out.', locked: 'Sign out all devices and block sign-in until unlocked.', banned: 'Sign out all devices and ban access until an administrator lifts the ban.', deleted: 'Anonymize this account and remove its profile photo and credentials. Its messages are redacted and uploaded media/files are removed from the server. Transaction/audit records remain. This cannot be undone.' };
+const accessDescriptions = { active: 'Restore sign-in and allow changes again.', frozen: 'Keep existing content readable, but prevent changes and purchases.', suspended: 'Temporarily hide this account and its message contents while preserving its data for restoration. All devices are signed out.', locked: 'Sign out all devices and block sign-in until unlocked.', banned: 'Sign out all devices and ban access until an administrator lifts the ban.', deleted: 'Sign out every device, remove the profile photos, name, username, phone and password, and leave every group and channel (owned ones pass to their longest-serving admin). Owned bots stop. Fragment names and numbers go back to the instance. Stars, wallet balances and collectible gifts move to the Deleted Accounts system account. Messages stay and show as Deleted Account. This cannot be undone.' };
 const sessionId = /^[a-f0-9]{64}$/;
 const pageSize = 8;
 
@@ -84,7 +84,87 @@ function Benefit({ icon: Icon, title, note, action, onAction }) {
     </div>;
 }
 
-function ProfileTab({ id, user, detail, onDetail, refresh }) {
+// the read-only identity lines on the Profile tab
+export function identityLines(user, detail) {
+    let lines = [['Phone', user.phoneNumber || detail.user?.phoneNumber || 'No phone number']];
+    for (let item of detail.fragment || []) lines.push([item.kind === 'number' ? 'Fragment number' : 'Fragment username', (item.displayTitle || item.title) + (item.listed ? ` · for sale, ${item.price} GRAM` : '')]);
+    if (detail.deletedAt) lines.push(['Deleted', `${date(detail.deletedAt)} · ${{ admin: 'by an administrator', self: 'by its owner', inactive: 'after inactivity' }[detail.deletionSource] || detail.deletionSource || ''}`]);
+    return lines;
+}
+
+function Identity({ id, user, detail, onClose }) {
+    return <div className="flex flex-col gap-2 rounded-lg px-3 py-3 ring ring-kumo-line">
+        <Rows>{identityLines(user, detail).map(([label, value], index) => <Row key={index} label={label}><span className="font-mono text-sm">{value}</span></Row>)}</Rows>
+        <div className="flex justify-end"><Button type="button" size="sm" variant="secondary" onClick={() => { onClose(); location.hash = 'circulation/user/' + id; }}>View holdings</Button></div>
+    </div>;
+}
+
+// what Reset Info can wipe, in the server's order (account.ResetFields)
+export const resetFields = [
+    ['phone', 'Phone number', 'A made-up +888 number replaces it and every number it could sign in with before.'],
+    ['name', 'Name', `Becomes "User" and the account id.`],
+    ['bio', 'Bio', 'Emptied.'],
+    ['username', 'Username', 'Free for anyone to take. A hidden placeholder stays, good for username sign-in.'],
+    ['photos', 'Profile photos', 'Every profile photo is removed.'],
+    ['birthday', 'Birthday', 'Removed.'],
+    ['channel', 'Profile channel', 'The channel shown on the profile is unlinked.']
+];
+
+// the picked fields in list order, unknown ones dropped
+export function resetPicked(picked = []) {
+    return resetFields.filter(([key]) => picked.includes(key)).map(([key]) => key);
+}
+
+export function resetSummary(picked = []) {
+    return resetFields.filter(([key]) => picked.includes(key)).map(([, label]) => label);
+}
+
+function ResetInfo({ id, user, onDetail, refresh }) {
+    let [picked, setPicked] = useState([]);
+    let [confirming, setConfirming] = useState(false);
+    let [confirmation, setConfirmation] = useState('');
+    let [error, setError] = useState('');
+    let [busy, setBusy] = useState(false);
+    let fields = resetPicked(picked);
+    async function submit(event) {
+        event.preventDefault();
+        setBusy(true);
+        setError('');
+        try {
+            let result = await api('/admin/users/' + id + '/reset', 'POST', { fields, confirmation });
+            onDetail(result);
+            await refresh();
+            toast(result.reset?.newPhone ? `Account info reset. New sign-in number: ${result.reset.newPhone}` : 'Account info reset.', 'success');
+        } catch (failure) { setError(failure.message); }
+        finally { setBusy(false); }
+    }
+    return <section className="flex flex-col gap-3 rounded-lg px-3 py-3 ring ring-kumo-line">
+        <div>
+            <Heading>Reset Info</Heading>
+            <Muted>Wipe personal details and keep the account. It stays signed in with the same password.</Muted>
+        </div>
+        <Checkbox.Group value={picked} onValueChange={value => { setPicked(value); setConfirming(false); setError(''); }} disabled={busy}>
+            <Checkbox.Legend className="sr-only">Fields to reset</Checkbox.Legend>
+            {resetFields.map(([key, label, note]) => <div key={key} className="flex flex-col">
+                <Checkbox.Item value={key} label={label} />
+                <small className="pl-6 text-xs text-kumo-subtle">{note}</small>
+            </div>)}
+        </Checkbox.Group>
+        {confirming ? <form className="flex flex-col gap-3 border-t border-kumo-hairline pt-3" onSubmit={submit} autoComplete="off" data-1p-ignore>
+            <p className="text-sm text-kumo-default">This resets: <strong>{resetSummary(fields).join(', ')}</strong>. The old values are gone for good.</p>
+            <Input label={`Type ${user.username} to confirm`} value={confirmation} onChange={event => setConfirmation(event.target.value)} required autoComplete="off" passwordManagerIgnore className="w-full" />
+            <Failure>{error}</Failure>
+            <div className="flex justify-end gap-2">
+                <Button type="button" size="sm" variant="secondary" onClick={() => { setConfirming(false); setConfirmation(''); setError(''); }}>Cancel</Button>
+                <Button type="submit" size="sm" variant="destructive" loading={busy} disabled={confirmation !== user.username}>Reset {fields.length === 1 ? '1 Field' : fields.length + ' Fields'}</Button>
+            </div>
+        </form> : <div className="flex justify-end">
+            <Button type="button" size="sm" variant="secondary-destructive" disabled={!fields.length} onClick={() => setConfirming(true)}>Reset Info</Button>
+        </div>}
+    </section>;
+}
+
+function ProfileTab({ id, user, me, detail, onDetail, refresh, onClose }) {
     let [values, setValues] = useState({ name: user.name || '', username: user.username || '', bio: user.bio || '', usernamePublic: user.usernamePublic !== false });
     let [error, setError] = useState('');
     let [busy, setBusy] = useState(false);
@@ -119,7 +199,8 @@ function ProfileTab({ id, user, detail, onDetail, refresh }) {
                 <span className="text-lg font-semibold tabular-nums text-kumo-default">{number(count)}</span>
             </div>)}
         </div>
-        <form className="flex flex-col gap-4" onSubmit={save} autoComplete="off" data-1p-ignore>
+        <Identity id={id} user={user} detail={detail} onClose={onClose} />
+        {accountState(user) === 'deleted' ? null : <form className="flex flex-col gap-4" onSubmit={save} autoComplete="off" data-1p-ignore>
             <Input label="Name" value={values.name} onChange={set('name')} maxLength={80} required autoComplete="off" passwordManagerIgnore className="w-full" />
             <Input label="Username" value={values.username} onChange={set('username')} maxLength={32} required autoComplete="off" passwordManagerIgnore className="w-full" />
             <InputArea label="Bio" value={values.bio} onChange={set('bio')} maxLength={user.isPremium ? 140 : 70} rows={3} autoComplete="off" data-1p-ignore className="w-full" />
@@ -139,7 +220,8 @@ function ProfileTab({ id, user, detail, onDetail, refresh }) {
             </div> : null}
             <Failure>{error}</Failure>
             <div className="flex justify-end"><Button type="submit" variant="primary" loading={busy}>Save Profile</Button></div>
-        </form>
+        </form>}
+        {accountState(user) === 'deleted' || user.role === 'admin' || user.id === me?.id ? null : <ResetInfo id={id} user={user} onDetail={onDetail} refresh={refresh} />}
     </div>;
 }
 
@@ -244,10 +326,13 @@ function PasswordReset({ id, user, onDetail, refresh }) {
 function AccessTab({ id, user, me, detail, section, accessState, setAccessState, onDetail, refresh }) {
     let dialogs = useDialogs();
     let ledger = section('ledger', detail.ledger || []);
+    let gone = accountState(user) === 'deleted';
     return <div className="flex flex-col gap-4">
-        <Benefit icon={CrownIcon} title={user.isPremium ? 'Premium member' : 'Free plan'} note={user.isPremium ? premiumExpiry(user, 'Expires ') : 'Local Premium access'} action="Manage" onAction={() => dialogs.open('premium', { ids: [id] })} />
-        <Benefit icon={StarIcon} title={`${number(user.stars)} Stars`} note="Create a traceable Stars transaction" action="Transact" onAction={() => dialogs.open('stars', { recipientId: id })} />
-        {user.id !== me.id ? <div><Button size="sm" variant="secondary" onClick={() => dialogs.open('role', { id })}>{user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}</Button></div> : null}
+        {gone ? null : <>
+            <Benefit icon={CrownIcon} title={user.isPremium ? 'Premium member' : 'Free plan'} note={user.isPremium ? premiumExpiry(user, 'Expires ') : 'Local Premium access'} action="Manage" onAction={() => dialogs.open('premium', { ids: [id] })} />
+            <Benefit icon={StarIcon} title={`${number(user.stars)} Stars`} note="Create a traceable Stars transaction" action="Transact" onAction={() => dialogs.open('stars', { recipientId: id })} />
+            {user.id !== me.id ? <div><Button size="sm" variant="secondary" onClick={() => dialogs.open('role', { id })}>{user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}</Button></div> : null}
+        </>}
         <AccountAccess id={id} user={user} me={me} pending={accessState} setPending={setAccessState} onDetail={onDetail} refresh={refresh} />
         {user.role !== 'admin' && user.id !== me.id && accountState(user) !== 'deleted' ? <PasswordReset id={id} user={user} onDetail={onDetail} refresh={refresh} /> : null}
         <Section view={ledger.view} setPage={ledger.setPage}>
@@ -372,7 +457,8 @@ function ChatsTab({ detail, section }) {
 function PrivacyTab({ detail }) {
     return <Rows>
         <Row label="Profile Photos">{number(detail.photoCount)}</Row>
-        <Row label="Inactive Account TTL">{number(detail.accountTtlDays)} days</Row>
+        <Row label="Delete if away for">{number(detail.accountTtlDays)} days</Row>
+        <Row label="Last seen">{date(detail.lastSeenAt)}</Row>
         {Object.entries(detail.privacy || {}).map(([key, value]) => <Row key={key} label={privacyLabel(key)}>
             {value.visibility || 'Default'}
             <small className="block text-xs text-kumo-subtle">{number(value.allowedPeople)} people allowed · {number(value.blockedPeople)} blocked · {number(value.allowedChats)} chats allowed · {number(value.blockedChats)} blocked</small>
@@ -441,7 +527,7 @@ export default function MemberDialog({ id, onClose }) {
                 </div>
                 <Tabs variant="underline" aria-label="Account management" tabs={tabs} value={tab} onValueChange={openTab} />
                 <section role="tabpanel" aria-label={tabs.find(item => item.value === tab)?.label}>
-                    {tab === 'profile' ? <ProfileTab key={revision} {...shared} onDetail={replaceDetail} /> : null}
+                    {tab === 'profile' ? <ProfileTab key={revision} {...shared} onDetail={replaceDetail} onClose={onClose} /> : null}
                     {tab === 'access' ? <AccessTab {...shared} accessState={accessState} setAccessState={setAccessState} onDetail={replaceDetail} /> : null}
                     {tab === 'sessions' ? <SessionsTab {...shared} confirmation={confirmation} setConfirmation={setConfirmation} onSessions={sessions => setDetail(current => ({ ...current, sessions }))} /> : null}
                     {tab === 'crypto' ? <CryptoTab id={id} wallet={wallet} setWallet={setWallet} section={section} request={cryptoRequest} /> : null}

@@ -22,6 +22,7 @@ import (
 	"github.com/Greengrame/greengram-server/internal/channels"
 	"github.com/Greengrame/greengram-server/internal/config"
 	"github.com/Greengrame/greengram-server/internal/edge"
+	"github.com/Greengrame/greengram-server/internal/erase"
 	"github.com/Greengrame/greengram-server/internal/fragment"
 	"github.com/Greengrame/greengram-server/internal/layer"
 	"github.com/Greengrame/greengram-server/internal/legacy"
@@ -103,6 +104,10 @@ func run() error {
 	a.RegisterStars(starSvc)
 	a.RegisterStories(stories.New(db.Pool))
 	a.RegisterReports(reports.New(db.Pool))
+	eraser := erase.New(db.Pool, set)
+	a.RegisterErase(eraser)
+	// accounts away longer than their account.setAccountTTL period
+	go eraser.Every(ctx, time.Hour)
 	market := wallet.NewMarket(wallet.MarketOptions{})
 	w := wallet.New(db.Pool, set, market, a.Notify).WithPhotos(miniapps.PhotoURL)
 	a.RegisterTopup(w)
@@ -185,6 +190,8 @@ func run() error {
 	adm.Gifts = starSvc
 	adm.Media = mediaSvc
 	adm.AccessChanged = a.AccessChanged
+	adm.Erased = a.AccountErased
+	adm.IdentityReset = a.IdentityReset
 	adm.AnswerAppeal = a.AnswerAppeal
 	adm.Moderator = a
 	adm.Extra = append(adm.Extra, func(ctx context.Context, out map[string]any) error {

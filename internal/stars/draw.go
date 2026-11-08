@@ -369,7 +369,21 @@ func (s *Service) drawOne(ctx context.Context, posts DrawPosts, skip []int64) (D
 		if err != nil {
 			return err
 		}
-		if err := Lock(ctx, tx, append([]int64{g.Buyer, escrow}, winners...)...); err != nil {
+		// a buyer who deleted their account meanwhile: what they'd get back
+		// goes where the rest of their Stars went
+		var buyerGone bool
+		if err := tx.QueryRow(ctx, "SELECT account_state = 'deleted' FROM users WHERE id=$1", g.Buyer).Scan(&buyerGone); err != nil {
+			return err
+		}
+		var erased int64
+		locks := append([]int64{g.Buyer, escrow}, winners...)
+		if buyerGone {
+			if erased, err = Account(ctx, tx, ErasedAccount); err != nil {
+				return err
+			}
+			locks = append(locks, erased)
+		}
+		if err := Lock(ctx, tx, locks...); err != nil {
 			return err
 		}
 		release := Entry{User: escrow, Amount: -g.Stars, Reason: "giveaway_release", Reference: fmt.Sprintf("giveaway:%d:release", g.FormID),
@@ -417,7 +431,13 @@ func (s *Service) drawOne(ctx context.Context, posts DrawPosts, skip []int64) (D
 		}
 		rest := g.Stars - prize*int64(len(winners))
 		if rest > 0 {
-			refund := Entry{User: g.Buyer, Amount: rest, Reason: "giveaway_refund", Reference: fmt.Sprintf("giveaway:%d:refund", g.FormID),
+			// a buyer who deleted their account meanwhile: what they'd get
+			// back goes where the rest of their Stars went
+			to := g.Buyer
+			if erased != 0 {
+				to = erased
+			}
+			refund := Entry{User: to, Amount: rest, Reason: "giveaway_refund", Reference: fmt.Sprintf("giveaway:%d:refund", g.FormID),
 				CreatedBy: escrow, Title: "Giveaway refund"}
 			if !gone {
 				refund.Channel = g.Channel

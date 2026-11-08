@@ -12,6 +12,14 @@ Copied files:
   Bot API parse_mode (HTML, Markdown, MarkdownV2) parsing. gramsrv's domain
   entity types swapped for local ones.
 
+Followed, not copied:
+- internal/erase (account deletion) follows the lifecycle of gramsrv's
+  internal/store/postgres/account_lifecycle.go and
+  internal/rpc/account_lifecycle_worker.go: one tombstone write for every
+  way an account goes, sign-ins revoked after the reply to the deleting
+  session, and an inactivity sweep that checks each account again under its
+  row lock. The code is Greengram's own; the schemas share nothing.
+
 Copied data:
 - internal/api/peercolors.json, from internal/seed/appearance/
   default_appearance_seed.json (peer_colors, peer_profile_colors): Telegram's

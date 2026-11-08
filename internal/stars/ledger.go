@@ -155,6 +155,9 @@ var (
 	StarsAccount   = System{"stars_payments", "instance_stars_payments", "Stars"}
 	AdminAccount   = System{"stars_issuer", "admin", "Admin"}
 	WalletAccount  = System{"wallet", "wallet", "Wallet"}
+	// ErasedAccount holds what deleted accounts left behind: their Stars,
+	// wallet balances and collectible gifts (see internal/erase).
+	ErasedAccount = System{"erased_accounts", "instance_deleted_accounts", "Deleted Accounts"}
 )
 
 var errSystemTaken = errors.New("stars: system account handle is taken by a person")

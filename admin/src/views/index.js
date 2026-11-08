@@ -1,4 +1,4 @@
-import { ChartBarIcon, ChatsCircleIcon, ClockCounterClockwiseIcon, CrownIcon, DevicesIcon, DiamondIcon, FlagIcon, GavelIcon, WarningOctagonIcon, GearIcon, GiftIcon, HeartbeatIcon, MegaphoneIcon, RobotIcon, ShieldCheckIcon, SquaresFourIcon, StarIcon, StickerIcon, UsersIcon } from '@phosphor-icons/react';
+import { ChartBarIcon, ChatsCircleIcon, ClockCounterClockwiseIcon, CoinsIcon, CrownIcon, DevicesIcon, DiamondIcon, FlagIcon, GavelIcon, WarningOctagonIcon, GearIcon, GiftIcon, HeartbeatIcon, MegaphoneIcon, RobotIcon, ShieldCheckIcon, SquaresFourIcon, StarIcon, StickerIcon, UsersIcon } from '@phosphor-icons/react';
 import Overview from './overview.jsx';
 import Statistics from './stats.jsx';
 import Members from './members.jsx';
@@ -14,6 +14,7 @@ import Premium from './premium.jsx';
 import Stars from './stars.jsx';
 import Gifts from './gifts.jsx';
 import Fragment from './fragment.jsx';
+import Circulation from './circulation.jsx';
 import Health from './health.jsx';
 import Audit from './audit.jsx';
 import Countries from './countries.jsx';
@@ -30,6 +31,7 @@ export const views = {
     reports: { title: 'Reports', description: 'What people reported, and what was done about it.', icon: WarningOctagonIcon, component: Reports },
     appeals: { title: 'Appeals', description: 'Frozen accounts asking to be let back.', icon: GavelIcon, component: Appeals },
     broadcast: { title: 'Broadcast', description: 'Send an announcement to your members.', icon: MegaphoneIcon, component: Broadcast },
+    circulation: { title: 'Gifts & Collectibles', description: 'What is in circulation: gifts, collectibles, Fragment names and numbers, and who holds them.', icon: CoinsIcon, component: Circulation },
     packs: { title: 'Stickers & emoji', description: 'Manage pack availability and access.', icon: StickerIcon, component: Packs },
     premium: { title: 'Premium', description: 'Manage subscriptions and member benefits.', icon: CrownIcon, component: Premium },
     stars: { title: 'Stars', description: 'Create transactions and review the Stars history.', icon: StarIcon, component: Stars },
@@ -43,7 +45,7 @@ export const views = {
 
 export const groups = [
     { label: 'Community', views: ['overview', 'stats', 'members', 'sessions', 'conversations', 'bots'] },
-    { label: 'Content', views: ['messages', 'reports', 'appeals', 'broadcast', 'packs'] },
+    { label: 'Content', views: ['messages', 'reports', 'appeals', 'broadcast', 'packs', 'circulation'] },
     { label: 'Economy', views: ['premium', 'stars', 'gifts', 'fragment'] },
     { label: 'System', views: ['health', 'audit', 'countries', 'settings'] }
 ];

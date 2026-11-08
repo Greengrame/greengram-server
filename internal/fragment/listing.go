@@ -45,7 +45,7 @@ var (
 // Names the built-in accounts use; nobody sells them.
 var reserved = map[string]bool{
 	"wallet": true, "botfather": true, "stickers": true, "fragmebot": true, "admin": true,
-	"greengram_stars": true, "instance_stars_payments": true, "instance_premium_payments": true, "instance_giveaways": true, "instance_gifts": true,
+	"greengram_stars": true, "instance_stars_payments": true, "instance_premium_payments": true, "instance_giveaways": true, "instance_gifts": true, "instance_deleted_accounts": true,
 }
 
 func trimMarker(v string) string {

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/iamxvbaba/td/tg"
@@ -305,6 +306,34 @@ func (a *API) UsernamesChanged(user int64) {
 	if _, err := a.profileChanged(ctx, u); err != nil {
 		slog.Warn("api: usernames changed", "user", user, "err", err)
 	}
+}
+
+// IdentityReset follows the admin panel's Reset Info: the account's own
+// apps get the new name, usernames and phone, and everyone online who has a
+// chat with it or keeps it as a contact gets the user again as they may see
+// it, so no app keeps showing the old number, name or photo.
+func (a *API) IdentityReset(user int64) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	u, ok, err := a.accounts.User(ctx, user)
+	if err != nil || !ok {
+		slog.Warn("api: identity reset", "user", user, "err", err)
+		return
+	}
+	first, last := splitName(u.Name)
+	name := &tg.UpdateUserName{UserID: tgUserID(u), FirstName: first, LastName: last, Usernames: []tg.Username{}}
+	if u.UsernamePublic || len(u.Aliases) > 0 {
+		name.Usernames = usernames(u, true)
+	}
+	phone := strings.TrimPrefix(u.Phone, "+")
+	a.echo(ctx, u, []tg.UpdateClass{name, &tg.UpdateUserPhone{UserID: tgUserID(u), Phone: phone}, &tg.UpdateUser{UserID: tgUserID(u)}},
+		[]tg.UserClass{a.selfUser(u)})
+	go a.tellWatchers(u.ID, func(ctx context.Context, viewer int64) (tg.UpdateClass, bool) {
+		if a.canSee(ctx, u.ID, viewer, "phoneNumber") {
+			return &tg.UpdateUserPhone{UserID: tgUserID(u), Phone: phone}, true
+		}
+		return &tg.UpdateUser{UserID: tgUserID(u)}, true
+	})
 }
 
 // ChannelUsernameReleased tells the channel's members a Fragment sale took
