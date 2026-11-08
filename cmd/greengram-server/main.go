@@ -211,7 +211,7 @@ func run() error {
 	adm.Register(mux)
 	(&site.Site{WebDir: cfg.WebDir, AdminDir: cfg.AdminDir, Admin: adm.Admin, SignedIn: auth.SignedIn,
 		Info: func(ctx context.Context) site.Landing {
-			l := site.Landing{Name: cfg.SiteName, Signup: true, Contact: cfg.AdminContact}
+			l := site.Landing{Name: cfg.SiteName, Signup: true, Contact: cfg.AdminContact, Community: cfg.CommunityURL}
 			if doc, err := set.All(ctx); err == nil {
 				if v, ok := doc["siteName"].(string); ok && v != "" {
 					l.Name = v

@@ -42,6 +42,9 @@ type Config struct {
 	// GREENGRAM_ADMIN_CONTACT: how to reach the people running this
 	// instance (an e-mail, a URL or a handle), shown on the home page
 	AdminContact string
+	// GREENGRAM_COMMUNITY_URL: an invite to the instance's community
+	// (Discord, a group), linked from the home page
+	CommunityURL string
 }
 
 func FromEnv() (Config, error) {
@@ -60,6 +63,7 @@ func FromEnv() (Config, error) {
 	c.WebDir, c.AdminDir = os.Getenv("GREENGRAM_WEB_DIR"), os.Getenv("GREENGRAM_ADMIN_DIR")
 	c.LangpackDir = env("GREENGRAM_LANGPACK_DIR", c.DataDir+"/langpack")
 	c.AdminContact = os.Getenv("GREENGRAM_ADMIN_CONTACT")
+	c.CommunityURL = os.Getenv("GREENGRAM_COMMUNITY_URL")
 	if c.DatabaseURL == "" {
 		return c, errors.New("GREENGRAM_DATABASE_URL is not set")
 	}

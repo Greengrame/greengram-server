@@ -205,6 +205,19 @@ func TestLandingSaysWhatTheInstanceIs(t *testing.T) {
 	if !strings.Contains(a.body, `href="mailto:admin@example.org"`) {
 		t.Error("no admin contact")
 	}
+	if strings.Contains(a.body, "Discord") {
+		t.Error("community link without GREENGRAM_COMMUNITY_URL")
+	}
+	for in, want := range map[string]string{
+		"https://discord.gg/abc":     `href="https://discord.gg/abc" rel="noopener" target="_blank">Discord</a>`,
+		"https://chat.example.org/x": `>Community</a>`,
+		"javascript:alert(1)":        "",
+	} {
+		b := get(t, testSite(t, Landing{Name: "Greengram", Community: in}).URL, "/").body
+		if want == "" && strings.Contains(b, "alert(1)") || want != "" && !strings.Contains(b, want) {
+			t.Errorf("community %q: %q", in, b)
+		}
+	}
 
 	for contact, want := range map[string]string{
 		"https://example.org/about": `<a href="https://example.org/about" rel="nofollow">https://example.org/about</a>`,

@@ -16,6 +16,9 @@
 <header class="top"><div class="in">
   <a class="brand" href="/"><img src="/branding/logo" alt="" width="28" height="28"><span>{{.Name}}</span></a>
   <nav>
+    {{- if .Community}}
+    <a class="hide-s" href="{{.Community}}" rel="noopener" target="_blank">{{.CommunityName}}</a>
+    {{- end}}
     <a class="hide-s" href="/login?next=%2F" data-next>Web app</a>
     <a class="pill" href="/login" data-next>Sign in</a>
   </nav>
@@ -67,6 +70,9 @@
 
 <footer><div class="in">
   <span>a Greengram server · unofficial Telegram clone, not affiliated with Telegram</span>
+  {{- if .Community}}
+  <span><a href="{{.Community}}" rel="noopener" target="_blank">{{.CommunityName}}</a></span>
+  {{- end}}
   {{- if .Contact}}
   <span>admin: {{if .ContactURL}}<a href="{{.ContactURL}}" rel="nofollow">{{.Contact}}</a>{{else}}{{.Contact}}{{end}}</span>
   {{- end}}

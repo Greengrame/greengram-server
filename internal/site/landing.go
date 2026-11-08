@@ -34,6 +34,8 @@ type Landing struct {
 	Name    string // the instance's name, settings siteName
 	Signup  bool   // registrationEnabled: show "create account"
 	Contact string // GREENGRAM_ADMIN_CONTACT; "" leaves it out
+	// GREENGRAM_COMMUNITY_URL, an http(s) link; anything else leaves it out
+	Community string
 }
 
 const robots = `User-agent: *
@@ -100,6 +102,13 @@ func (s *Site) landing(w http.ResponseWriter, r *http.Request) {
 			data["ContactURL"] = u.String()
 		} else if a, err := mail.ParseAddress(c); err == nil && a.Address == c {
 			data["ContactURL"] = "mailto:" + c
+		}
+	}
+	if u, err := url.Parse(strings.TrimSpace(info.Community)); err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host != "" {
+		data["Community"] = u.String()
+		data["CommunityName"] = "Community"
+		if h := strings.TrimPrefix(u.Hostname(), "www."); h == "discord.gg" || h == "discord.com" {
+			data["CommunityName"] = "Discord"
 		}
 	}
 	var b bytes.Buffer
