@@ -147,4 +147,4 @@ func (s *Service) SearchGlobal(ctx context.Context, user int64, q GlobalQuery) (
 const mCols = `m.channel_id, m.id, m.from_id, m.date, m.post, m.text, m.entities, m.action, coalesce(m.reply_to, 0), coalesce(m.fwd_from_id, 0),
 	coalesce(m.fwd_date, 0), coalesce(m.edit_date, 0), coalesce(m.fwd_channel_id, 0), coalesce(m.fwd_channel_msg, 0),
 	m.media, m.media_kind, m.media_id, coalesce(m.grouped_id, 0), m.reply_markup,
-	coalesce(m.fwd_from_chan, 0), coalesce(m.fwd_from_post, 0), coalesce(m.fwd_from_name, ''), coalesce(m.topic_id, 0), m.pinned, m.silent, m.rich, coalesce(m.via_bot_id, 0)`
+	coalesce(m.fwd_from_chan, 0), coalesce(m.fwd_from_post, 0), coalesce(m.fwd_from_name, ''), coalesce(m.topic_id, 0), m.pinned, m.silent, m.rich, coalesce(m.via_bot_id, 0), m.reply_quote`

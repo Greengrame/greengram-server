@@ -99,7 +99,7 @@ func (a *API) sendMessage(ctx context.Context, r *tg.MessagesSendMessageRequest)
 	if r.ReplyTo != nil {
 		reply, topic = replyID(r.ReplyTo), replyTopic(r.ReplyTo)
 	}
-	o := outgoing{text: r.Message, entities: r.Entities, replyTo: reply, topic: topic, randomID: r.RandomID, silent: r.Silent, noWebpage: r.NoWebpage}
+	o := outgoing{text: r.Message, entities: r.Entities, replyTo: reply, quote: nativeReplyQuote(r.ReplyTo), topic: topic, randomID: r.RandomID, silent: r.Silent, noWebpage: r.NoWebpage}
 	if in, ok := r.GetRichMessage(); ok {
 		if o.rich, o.text, err = a.richFromInput(ctx, me, in); err != nil {
 			return nil, err
@@ -134,6 +134,7 @@ type outgoing struct {
 	text     string
 	entities []tg.MessageEntityClass
 	replyTo  int
+	quote    []byte
 	topic    int // forum topic (top_msg_id); channels only
 	randomID int64
 	fwd      messages.Origin
@@ -142,7 +143,7 @@ type outgoing struct {
 	silent   bool
 	// no link preview
 	noWebpage bool
-	rich     []byte
+	rich      []byte
 	// an inline result: the bot it came through, and the bot's keyboard
 	via    int64
 	markup tg.ReplyMarkupClass
@@ -184,7 +185,7 @@ func (a *API) sendTo(ctx context.Context, me account.User, to peer, list []outgo
 			o.media = preview
 		}
 		if to.channel != 0 {
-			s, err := a.chans.Send(ctx, me.ID, to.channel, channels.Draft{Text: o.text, Entities: o.entities, ReplyTo: o.replyTo, RandomID: o.randomID, Fwd: o.fwd,
+			s, err := a.chans.Send(ctx, me.ID, to.channel, channels.Draft{Text: o.text, Entities: o.entities, ReplyTo: o.replyTo, Quote: o.quote, RandomID: o.randomID, Fwd: o.fwd,
 				Media: o.media, Grouped: o.grouped, TopMsgID: o.topic, Silent: o.silent, Mentions: named, Rich: o.rich, ViaBot: o.via, ReplyMarkup: o.markup})
 			if err != nil {
 				return nil, err
@@ -199,7 +200,7 @@ func (a *API) sendTo(ctx context.Context, me account.User, to peer, list []outgo
 			chEvents = append(chEvents, s.Events...)
 			continue
 		}
-		s, err := a.msgs.Send(ctx, me.ID, to.user, messages.Draft{Text: o.text, Entities: o.entities, ReplyTo: o.replyTo, RandomID: o.randomID, Fwd: o.fwd,
+		s, err := a.msgs.Send(ctx, me.ID, to.user, messages.Draft{Text: o.text, Entities: o.entities, ReplyTo: o.replyTo, Quote: o.quote, Topic: o.topic, RandomID: o.randomID, Fwd: o.fwd,
 			Media: o.media, Grouped: o.grouped, Silent: o.silent, Rich: o.rich, SenderOnly: dropped, ViaBot: o.via, ReplyMarkup: o.markup})
 		if err != nil {
 			return nil, err
@@ -328,6 +329,9 @@ func (a *API) forwardMessages(ctx context.Context, r *tg.MessagesForwardMessages
 			if m.Action != nil {
 				continue
 			}
+			if media.WidgetKey(m.Media) != "" {
+				return nil, tgerr.New(400, "CHAT_FORWARDS_RESTRICTED")
+			}
 			o := orig{text: m.Text, entities: m.Entities, fwd: m.Fwd, media: m.Media, grouped: m.Grouped, rich: m.Rich}
 			// a post speaks as the channel; from_id is the admin who
 			// wrote it and stays secret
@@ -351,6 +355,9 @@ func (a *API) forwardMessages(ctx context.Context, r *tg.MessagesForwardMessages
 		for _, m := range list {
 			if m.Action != nil {
 				continue
+			}
+			if media.WidgetKey(m.Media) != "" {
+				return nil, tgerr.New(400, "CHAT_FORWARDS_RESTRICTED")
 			}
 			o := orig{text: m.Text, entities: m.Entities, fwd: m.Fwd, media: m.Media, grouped: m.Grouped, rich: m.Rich}
 			if m.Fwd.Empty() {
@@ -1069,4 +1076,31 @@ func searchTopic(c channels.Channel, top int) int {
 		return top
 	}
 	return 0
+}
+
+func nativeReplyQuote(input tg.InputReplyToClass) []byte {
+	var reply *tg.InputReplyToMessage
+	var ok bool
+	var header = tg.MessageReplyHeader{Quote: true}
+	var raw []byte
+	var err error
+	reply, ok = input.(*tg.InputReplyToMessage)
+	if !ok || reply.QuoteText == "" && len(reply.QuoteRich) == 0 {
+		return nil
+	}
+	if reply.QuoteText != "" {
+		header.SetQuoteText(reply.QuoteText)
+	}
+	if len(reply.QuoteEntities) != 0 {
+		header.SetQuoteEntities(reply.QuoteEntities)
+	}
+	if len(reply.QuoteRich) != 0 {
+		header.SetQuoteRich(reply.QuoteRich)
+	}
+	header.SetQuoteOffset(reply.QuoteOffset)
+	raw, err = messages.EncodeReplyQuote(&header)
+	if err != nil {
+		return nil
+	}
+	return raw
 }

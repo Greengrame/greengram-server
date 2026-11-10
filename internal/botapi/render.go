@@ -79,19 +79,46 @@ func (v *view) origin(o messages.Origin) *apiOrigin {
 }
 
 type apiMessage struct {
-	MessageID     int                `json:"message_id"`
-	From          *apiUser           `json:"from,omitempty"`
-	SenderChat    *apiChat           `json:"sender_chat,omitempty"`
-	ViaBot        *apiUser           `json:"via_bot,omitempty"`
-	Date          int                `json:"date"`
-	Chat          apiChat            `json:"chat"`
-	ForwardOrigin *apiOrigin         `json:"forward_origin,omitempty"`
-	ReplyTo       *apiMessage        `json:"reply_to_message,omitempty"`
-	EditDate      int                `json:"edit_date,omitempty"`
-	Text          string             `json:"text,omitempty"`
-	Entities      []apiMessageEntity `json:"entities,omitempty"`
-	ReplyMarkup   *apiMarkup         `json:"reply_markup,omitempty"`
-	WebAppData    *apiWebAppData     `json:"web_app_data,omitempty"`
+	LivePhoto           map[string]any     `json:"live_photo,omitempty"`
+	ForumTopicCreated   map[string]any     `json:"forum_topic_created,omitempty"`
+	MessageThreadID     int                `json:"message_thread_id,omitempty"`
+	IsTopicMessage      bool               `json:"is_topic_message,omitempty"`
+	ManagedBotCreated   map[string]any     `json:"managed_bot_created,omitempty"`
+	RichMessage         map[string]any     `json:"rich_message,omitempty"`
+	Quote               map[string]any     `json:"quote,omitempty"`
+	TonWalletTransfer   map[string]any     `json:"ton_wallet_transfer,omitempty"`
+	PaidMessagesWaived  *struct{}          `json:"paid_messages_waived,omitempty"`
+	Widget              *apiWidget         `json:"widget,omitempty"`
+	HasProtectedContent bool               `json:"has_protected_content,omitempty"`
+	EphemeralMessageID  int                `json:"ephemeral_message_id,omitempty"`
+	ReceiverUser        *apiUser           `json:"receiver_user,omitempty"`
+	MessageID           int                `json:"message_id"`
+	From                *apiUser           `json:"from,omitempty"`
+	SenderChat          *apiChat           `json:"sender_chat,omitempty"`
+	ViaBot              *apiUser           `json:"via_bot,omitempty"`
+	Date                int                `json:"date"`
+	Chat                apiChat            `json:"chat"`
+	ForwardOrigin       *apiOrigin         `json:"forward_origin,omitempty"`
+	ReplyTo             *apiMessage        `json:"reply_to_message,omitempty"`
+	EditDate            int                `json:"edit_date,omitempty"`
+	Text                string             `json:"text,omitempty"`
+	Entities            []apiMessageEntity `json:"entities,omitempty"`
+	ReplyMarkup         *apiMarkup         `json:"reply_markup,omitempty"`
+	WebAppData          *apiWebAppData     `json:"web_app_data,omitempty"`
+	Caption             string             `json:"caption,omitempty"`
+	CaptionEntities     []apiMessageEntity `json:"caption_entities,omitempty"`
+	Photo               []map[string]any   `json:"photo,omitempty"`
+	Document            map[string]any     `json:"document,omitempty"`
+	Video               map[string]any     `json:"video,omitempty"`
+	VideoNote           map[string]any     `json:"video_note,omitempty"`
+	Animation           map[string]any     `json:"animation,omitempty"`
+	Audio               map[string]any     `json:"audio,omitempty"`
+	Voice               map[string]any     `json:"voice,omitempty"`
+	Sticker             map[string]any     `json:"sticker,omitempty"`
+	Contact             map[string]any     `json:"contact,omitempty"`
+	Location            map[string]any     `json:"location,omitempty"`
+	Venue               map[string]any     `json:"venue,omitempty"`
+	Dice                map[string]any     `json:"dice,omitempty"`
 }
 
 type apiWebAppData struct {
@@ -172,18 +199,28 @@ func (v *view) chat(c chat) apiChat {
 
 // private renders a message from the bot's box.
 func (v *view) private(m messages.Msg, depth int) *apiMessage {
-	c := chat{user: m.Peer}
-	out := &apiMessage{MessageID: m.ID, From: v.user(m.From), Date: m.Date, Chat: v.chat(c), EditDate: m.EditDate}
+	var c = chat{user: m.Peer}
+	var out = &apiMessage{MessageID: m.ID, From: v.user(m.From), Date: m.Date, Chat: v.chat(c), EditDate: m.EditDate}
+	var data *tg.MessageActionWebViewDataSentMe
+	var ok bool
+	var list []messages.Msg
+	var err error
+	out.MessageThreadID, out.IsTopicMessage = m.Topic, m.Topic != 0
 	if m.ViaBot != 0 {
 		out.ViaBot = v.user(m.ViaBot)
 	}
 	v.body(out, m.Text, m.Entities, m.ReplyMarkup, !m.Out)
-	if d, ok := m.Action.(*tg.MessageActionWebViewDataSentMe); ok {
-		out.WebAppData = &apiWebAppData{Data: d.Data, ButtonText: d.Text}
+	v.mediaBody(out, m.Media)
+	v.richBody(out, m.Rich)
+	v.quoteBody(out, m.Quote)
+	v.serviceBody(out, m)
+	if data, ok = m.Action.(*tg.MessageActionWebViewDataSentMe); ok {
+		out.WebAppData = &apiWebAppData{Data: data.Data, ButtonText: data.Text}
 	}
 	out.ForwardOrigin = v.origin(m.Fwd)
 	if m.ReplyTo != 0 && depth == 0 {
-		if list, err := v.s.Msgs.Get(v.ctx, v.bot.UserID, []int{m.ReplyTo}); err == nil && len(list) == 1 {
+		list, err = v.s.Msgs.Get(v.ctx, v.bot.UserID, []int{m.ReplyTo})
+		if err == nil && len(list) == 1 {
 			out.ReplyTo = v.private(list[0], 1)
 		}
 	}
@@ -191,28 +228,37 @@ func (v *view) private(m messages.Msg, depth int) *apiMessage {
 }
 
 func (v *view) channelMsg(m channels.Msg, depth int) *apiMessage {
-	c := chat{channel: m.Channel}
-	out := &apiMessage{MessageID: m.ID, Date: m.Date, Chat: v.chat(c), EditDate: m.EditDate}
+	var c = chat{channel: m.Channel}
+	var out = &apiMessage{MessageID: m.ID, Date: m.Date, Chat: v.chat(c), EditDate: m.EditDate}
+	var sender apiChat
+	var origin *apiOrigin
+	var list []channels.Msg
+	var err error
 	if m.ViaBot != 0 {
 		out.ViaBot = v.user(m.ViaBot)
 	}
 	switch {
 	case m.FwdChanID != 0:
-		sc := v.chat(chat{channel: m.FwdChanID})
-		out.SenderChat = &sc
-		out.ForwardOrigin = &apiOrigin{Type: "channel", Date: m.Date, Chat: &sc, MessageID: m.FwdChanMs}
+		sender = v.chat(chat{channel: m.FwdChanID})
+		out.SenderChat = &sender
+		out.ForwardOrigin = &apiOrigin{Type: "channel", Date: m.Date, Chat: &sender, MessageID: m.FwdChanMs}
 	case m.Post:
-		sc := out.Chat
-		out.SenderChat = &sc
+		sender = out.Chat
+		out.SenderChat = &sender
 	default:
 		out.From = v.user(m.From)
 	}
 	v.body(out, m.Text, m.Entities, m.ReplyMarkup, m.From != v.bot.UserID)
-	if o := v.origin(m.Fwd); o != nil {
-		out.ForwardOrigin = o
+	v.mediaBody(out, m.Media)
+	v.richBody(out, m.Rich)
+	v.quoteBody(out, m.Quote)
+	origin = v.origin(m.Fwd)
+	if origin != nil {
+		out.ForwardOrigin = origin
 	}
 	if m.ReplyTo != 0 && depth == 0 {
-		if list, err := v.s.Chans.Messages(v.ctx, m.Channel, []int{m.ReplyTo}); err == nil && len(list) == 1 {
+		list, err = v.s.Chans.Messages(v.ctx, m.Channel, []int{m.ReplyTo})
+		if err == nil && len(list) == 1 {
 			out.ReplyTo = v.channelMsg(list[0], 1)
 		}
 	}
@@ -281,11 +327,17 @@ type apiCallback struct {
 
 // update renders a queued update; ok is false when what it points at is gone.
 func (v *view) update(u bots.Update) (map[string]any, bool) {
+	var payload map[string]any
 	c := chat{user: u.ChatID}
 	if u.Channel {
 		c = chat{channel: u.ChatID}
 	}
 	switch u.Kind {
+	case "widget_query", "shared_widget_query", "business_connection", "managed_bot":
+		if json.Unmarshal(u.Payload, &payload) != nil {
+			return nil, false
+		}
+		return map[string]any{"update_id": u.ID, u.Kind: payload}, true
 	case "callback_query":
 		cb, ok, err := v.s.Bots.Callback(v.ctx, u.QueryID)
 		if err != nil || !ok {

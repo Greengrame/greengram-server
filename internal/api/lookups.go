@@ -94,9 +94,7 @@ func (a *API) registerLookups() {
 	handle(a, tlprofile.SemanticMethodAccountGetThemes, func(context.Context, *tg.AccountGetThemesRequest) (any, error) {
 		return &tg.AccountThemes{Themes: []tg.Theme{}}, nil
 	})
-	handle(a, tlprofile.SemanticMethodAccountGetConnectedBots, func(context.Context, *tg.AccountGetConnectedBotsRequest) (any, error) {
-		return &tg.AccountConnectedBots{ConnectedBots: []tg.ConnectedBot{}, Users: []tg.UserClass{}}, nil
-	})
+	handle(a, tlprofile.SemanticMethodAccountGetConnectedBots, a.getConnectedBots)
 	handle(a, tlprofile.SemanticMethodAccountGetAutoDownloadSettings, func(context.Context, *tg.AccountGetAutoDownloadSettingsRequest) (any, error) {
 		return &tg.AccountAutoDownloadSettings{Low: autoDownload(1 << 20), Medium: autoDownload(10 << 20), High: autoDownload(100 << 20)}, nil
 	})

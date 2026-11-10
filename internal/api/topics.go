@@ -67,7 +67,7 @@ func (a *API) toggleViewForumAsMessages(ctx context.Context, r *tg.ChannelsToggl
 	return a.opUpdates(ctx, me, id, events)
 }
 
-func (a *API) createForumTopic(ctx context.Context, r *tg.MessagesCreateForumTopicRequest) (any, error) {
+func (a *API) createChannelForumTopic(ctx context.Context, r *tg.MessagesCreateForumTopicRequest) (any, error) {
 	me, err := a.me(ctx)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (a *API) createForumTopic(ctx context.Context, r *tg.MessagesCreateForumTop
 	return up, nil
 }
 
-func (a *API) editForumTopic(ctx context.Context, r *tg.MessagesEditForumTopicRequest) (any, error) {
+func (a *API) editChannelForumTopic(ctx context.Context, r *tg.MessagesEditForumTopicRequest) (any, error) {
 	me, err := a.me(ctx)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (a *API) forum(ctx context.Context, me account.User, in tg.InputPeerClass) 
 	return c, nil
 }
 
-func (a *API) getForumTopics(ctx context.Context, r *tg.MessagesGetForumTopicsRequest) (any, error) {
+func (a *API) getChannelForumTopics(ctx context.Context, r *tg.MessagesGetForumTopicsRequest) (any, error) {
 	me, err := a.me(ctx)
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ func (a *API) getForumTopics(ctx context.Context, r *tg.MessagesGetForumTopicsRe
 	return out, nil
 }
 
-func (a *API) getForumTopicsByID(ctx context.Context, r *tg.MessagesGetForumTopicsByIDRequest) (any, error) {
+func (a *API) getChannelForumTopicsByID(ctx context.Context, r *tg.MessagesGetForumTopicsByIDRequest) (any, error) {
 	me, err := a.me(ctx)
 	if err != nil {
 		return nil, err
@@ -249,7 +249,7 @@ func (a *API) reorderPinnedForumTopics(ctx context.Context, r *tg.MessagesReorde
 	return a.opUpdates(ctx, me, id, events)
 }
 
-func (a *API) deleteTopicHistory(ctx context.Context, r *tg.MessagesDeleteTopicHistoryRequest) (any, error) {
+func (a *API) deleteChannelTopicHistory(ctx context.Context, r *tg.MessagesDeleteTopicHistoryRequest) (any, error) {
 	me, err := a.me(ctx)
 	if err != nil {
 		return nil, err

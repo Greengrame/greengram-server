@@ -257,7 +257,8 @@ type Msg struct {
 	Pinned      bool
 	Silent      bool
 	// an article: encoded richMessage, Text is its plain words
-	Rich []byte
+	Rich  []byte
+	Quote []byte
 	// sent through this bot's inline mode
 	ViaBot int64
 }
@@ -335,13 +336,14 @@ func (m Msg) replyHeader() (*tg.MessageReplyHeader, bool) {
 	case m.Topic != 0 && m.Topic == m.ID:
 		return nil, false
 	case m.Topic != 0 && m.ReplyTo != 0 && m.ReplyTo != m.Topic:
-		h := &tg.MessageReplyHeader{ForumTopic: true, ReplyToMsgID: m.ReplyTo}
+		h := messages.ReplyHeader(m.ReplyTo, m.Quote)
+		h.ForumTopic = true
 		h.SetReplyToTopID(m.Topic)
 		return h, true
 	case m.Topic != 0:
 		return &tg.MessageReplyHeader{ForumTopic: true, ReplyToMsgID: m.Topic}, true
 	case m.ReplyTo != 0:
-		return &tg.MessageReplyHeader{ReplyToMsgID: m.ReplyTo}, true
+		return messages.ReplyHeader(m.ReplyTo, m.Quote), true
 	}
 	return nil, false
 }

@@ -43,7 +43,9 @@ work=${GREENGRAM_BUILD_DIR:-$out/.build}
 # Web A
 rm -rf "$work"
 mkdir -p "$work/webapp"
-if [ -n "$src" ]; then
+if [ -n "$src" ] && [ -f "$src/src/lib/gramjs/greengram.ts" ]; then
+	tar -C "$src" --exclude=./dist --exclude=./node_modules --exclude=./.git --exclude=./data --exclude=./public/admin-assets --exclude=./.cache -cf - . | tar -C "$work/webapp" -xf -
+elif [ -n "$src" ]; then
 	tar -C "$src/vendor/telegram-web-a" --exclude=./dist --exclude=./node_modules -cf - . | tar -C "$work/webapp" -xf -
 else
 	echo "downloading Web A $WEBA_COMMIT"
@@ -57,7 +59,9 @@ else
 	rm -rf "$work/webapp/dist"
 	rm "$work/weba.tar.gz"
 fi
-bun "$here/scripts/apply-web-patch.mjs" "$here/web/telegram-web-a.patch" "$work/webapp"
+if [ ! -f "$work/webapp/src/lib/gramjs/greengram.ts" ]; then
+	bun "$here/scripts/apply-web-patch.mjs" "$here/web/telegram-web-a.patch" "$work/webapp"
+fi
 (
 	cd "$work/webapp"
 	bun --bun install --frozen-lockfile

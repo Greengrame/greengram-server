@@ -77,21 +77,26 @@ func botAPIMessageEntities(raw string) ([]fmtEntity, error) {
 
 // plain entity kinds the Bot API accepts on input with nothing extra
 var plainKinds = map[string]bool{
-	"mention": true, "hashtag": true, "cashtag": true, "bot_command": true, "url": true, "email": true, "phone_number": true,
+	"mention": true, "hashtag": true, "cashtag": true, "bot_command": true, "url": true, "email": true, "phone_number": true, "ton_address": true, "bank_card_number": true,
 	"bold": true, "italic": true, "underline": true, "strikethrough": true, "spoiler": true, "code": true, "pre": true,
 	"blockquote": true, "expandable_blockquote": true, "text_link": true, "text_mention": true, "custom_emoji": true,
 }
 
 func messageEntitiesFromAPI(in []apiMessageEntity) ([]fmtEntity, error) {
+	var out []fmtEntity
+	var e apiMessageEntity
+	var f fmtEntity
+	var id int64
+	var err error
 	if len(in) > maxEntityCount {
 		return nil, errors.New("too many entities")
 	}
-	out := make([]fmtEntity, 0, len(in))
-	for _, e := range in {
+	out = make([]fmtEntity, 0, len(in))
+	for _, e = range in {
 		if !plainKinds[e.Type] {
 			return nil, errors.New("unsupported entity type " + strconv.Quote(e.Type))
 		}
-		f := fmtEntity{Type: fmtEntityType(e.Type), Offset: e.Offset, Length: e.Length, Language: e.Language}
+		f = fmtEntity{Type: fmtEntityType(e.Type), Offset: e.Offset, Length: e.Length, Language: e.Language}
 		switch e.Type {
 		case "expandable_blockquote":
 			f.Type, f.Collapsed = fmtEntityBlockquote, true
@@ -106,7 +111,7 @@ func messageEntitiesFromAPI(in []apiMessageEntity) ([]fmtEntity, error) {
 			}
 			f.UserID = e.User.ID
 		case "custom_emoji":
-			id, err := strconv.ParseInt(e.CustomEmojiID, 10, 64)
+			id, err = strconv.ParseInt(e.CustomEmojiID, 10, 64)
 			if err != nil || id <= 0 {
 				return nil, errors.New("wrong custom_emoji_id")
 			}
@@ -121,9 +126,11 @@ func messageEntitiesFromAPI(in []apiMessageEntity) ([]fmtEntity, error) {
 // own (mentions, links, ...) pass through as such.
 func tgEntities(list []fmtEntity) []tg.MessageEntityClass {
 	var out []tg.MessageEntityClass
-	for _, e := range list {
-		o, l := e.Offset, e.Length
-		var t tg.MessageEntityClass
+	var e fmtEntity
+	var o, l int
+	var t tg.MessageEntityClass
+	for _, e = range list {
+		o, l = e.Offset, e.Length
 		switch e.Type {
 		case fmtEntityBold:
 			t = &tg.MessageEntityBold{Offset: o, Length: l}
@@ -164,6 +171,10 @@ func tgEntities(list []fmtEntity) []tg.MessageEntityClass {
 			t = &tg.MessageEntityEmail{Offset: o, Length: l}
 		case "phone_number":
 			t = &tg.MessageEntityPhone{Offset: o, Length: l}
+		case "ton_address":
+			t = &tg.MessageEntityTonAddress{Offset: o, Length: l}
+		case "bank_card_number":
+			t = &tg.MessageEntityBankCard{Offset: o, Length: l}
 		default:
 			continue
 		}
@@ -175,9 +186,11 @@ func tgEntities(list []fmtEntity) []tg.MessageEntityClass {
 // apiEntities is the Bot API view of TL entities.
 func apiEntities(list []tg.MessageEntityClass) []apiMessageEntity {
 	var out []apiMessageEntity
-	for _, t := range list {
-		e := apiMessageEntity{Offset: t.GetOffset(), Length: t.GetLength()}
-		switch v := t.(type) {
+	var t tg.MessageEntityClass
+	var e apiMessageEntity
+	for _, t = range list {
+		e = apiMessageEntity{Offset: t.GetOffset(), Length: t.GetLength()}
+		switch t.(type) {
 		case *tg.MessageEntityBold:
 			e.Type = "bold"
 		case *tg.MessageEntityItalic:
@@ -191,21 +204,21 @@ func apiEntities(list []tg.MessageEntityClass) []apiMessageEntity {
 		case *tg.MessageEntityCode:
 			e.Type = "code"
 		case *tg.MessageEntityPre:
-			e.Type, e.Language = "pre", v.Language
+			e.Type, e.Language = "pre", t.(*tg.MessageEntityPre).Language
 		case *tg.MessageEntityTextURL:
-			e.Type, e.URL = "text_link", v.URL
+			e.Type, e.URL = "text_link", t.(*tg.MessageEntityTextURL).URL
 		case *tg.MessageEntityMentionName:
 			e.Type = "text_mention"
 			e.User = &struct {
 				ID int64 `json:"id"`
-			}{v.UserID}
+			}{t.(*tg.MessageEntityMentionName).UserID}
 		case *tg.MessageEntityBlockquote:
 			e.Type = "blockquote"
-			if v.Collapsed {
+			if t.(*tg.MessageEntityBlockquote).Collapsed {
 				e.Type = "expandable_blockquote"
 			}
 		case *tg.MessageEntityCustomEmoji:
-			e.Type, e.CustomEmojiID = "custom_emoji", strconv.FormatInt(v.DocumentID, 10)
+			e.Type, e.CustomEmojiID = "custom_emoji", strconv.FormatInt(t.(*tg.MessageEntityCustomEmoji).DocumentID, 10)
 		case *tg.MessageEntityMention:
 			e.Type = "mention"
 		case *tg.MessageEntityHashtag:
@@ -220,6 +233,10 @@ func apiEntities(list []tg.MessageEntityClass) []apiMessageEntity {
 			e.Type = "email"
 		case *tg.MessageEntityPhone:
 			e.Type = "phone_number"
+		case *tg.MessageEntityTonAddress:
+			e.Type = "ton_address"
+		case *tg.MessageEntityBankCard:
+			e.Type = "bank_card_number"
 		default:
 			continue
 		}

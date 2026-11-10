@@ -208,13 +208,13 @@ func (s *Service) Owned(ctx context.Context, owner int64) ([]Bot, error) {
 // OwnedByUsername is one of owner's bots by @username.
 func (s *Service) OwnedByUsername(ctx context.Context, owner int64, username string) (Bot, bool, error) {
 	name := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(username), "@"))
-	return s.one(ctx, "b.owner_id=$1 AND lower(u.username)=$2 AND NOT u.disabled", owner, name)
+	return s.one(ctx, "b.owner_id=$1 AND (lower(u.username)=$2 OR EXISTS(SELECT 1 FROM bot_secondary_usernames n WHERE n.bot_id=u.id AND n.username=$2)) AND NOT u.disabled", owner, name)
 }
 
 // ByUsername is any live bot by @username.
 func (s *Service) ByUsername(ctx context.Context, username string) (Bot, bool, error) {
 	name := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(username), "@"))
-	return s.one(ctx, "lower(u.username)=$1 AND NOT u.disabled", name)
+	return s.one(ctx, "(lower(u.username)=$1 OR EXISTS(SELECT 1 FROM bot_secondary_usernames n WHERE n.bot_id=u.id AND n.username=$1)) AND NOT u.disabled", name)
 }
 
 func hashToken(token string) string {
@@ -283,7 +283,7 @@ func checkUsername(ctx context.Context, q querier, username string) error {
 	var taken bool
 	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE lower(username)=$1)
 		OR EXISTS(SELECT 1 FROM channels WHERE lower(username)=$1)
-		OR EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||$1)`, name).Scan(&taken)
+		OR EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||$1) OR EXISTS(SELECT 1 FROM bot_secondary_usernames WHERE username=$1)`, name).Scan(&taken)
 	if err != nil {
 		return err
 	}
@@ -295,57 +295,141 @@ func checkUsername(ctx context.Context, q querier, username string) error {
 
 // Create makes a bot for owner and returns it with its first token.
 func (s *Service) Create(ctx context.Context, owner int64, name, username string) (Bot, string, error) {
-	name = strings.TrimSpace(name)
-	if name == "" || len([]rune(name)) > 64 || strings.HasPrefix(name, "/") {
-		return Bot{}, "", refuse("Sorry, this name can't be used. Use 1-64 characters.")
-	}
+	return s.create(ctx, owner, 0, name, username, "")
+}
+
+func (s *Service) CreateManaged(ctx context.Context, owner, manager int64, name, username string) (Bot, string, error) {
+	var secondary string
 	username = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(username), "@"))
+	if !strings.HasSuffix(strings.ToLower(username), "bot") {
+		secondary = strings.ToLower(username)
+		if !IsSecondaryUsername(secondary) {
+			return Bot{}, "", refuse("Invalid suggested username.")
+		}
+		username = secondary
+		if len(username) > 29 {
+			username = username[:29]
+		}
+		username += "bot"
+	}
+	return s.create(ctx, owner, manager, name, username, secondary)
+}
+
+func (s *Service) create(ctx context.Context, owner, manager int64, name, username, secondary string) (Bot, string, error) {
 	var id int64
 	var token string
-	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
-		// usernames are checked and taken under one lock, like sign-up
-		if _, err := tx.Exec(ctx, "LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE"); err != nil {
+	var bot Bot
+	var err error
+	name = strings.TrimSpace(name)
+	if name == "" || len([]rune(name)) > 64 || strings.HasPrefix(name, "/") {
+		return bot, "", refuse("Use a name of 1-64 characters.")
+	}
+	username = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(username), "@"))
+	err = pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		var count int
+		var attempt int
+		var baseName string
+		var refusal *Error
+		var frozen, exists bool
+		var err error
+		_, err = tx.Exec(ctx, "LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE")
+		if err != nil {
 			return err
 		}
-		var n int
-		var frozen bool
-		if err := tx.QueryRow(ctx, `SELECT count(*), (SELECT account_state = 'frozen' FROM users WHERE id=$1)
-			FROM bots b JOIN users u ON u.id = b.user_id WHERE b.owner_id=$1 AND NOT u.disabled`, owner).Scan(&n, &frozen); err != nil {
+		err = tx.QueryRow(ctx, `SELECT count(*),(SELECT account_state='frozen' FROM users WHERE id=$1) FROM bots b JOIN users u ON u.id=b.user_id WHERE b.owner_id=$1 AND NOT u.disabled`, owner).Scan(&count, &frozen)
+		if err != nil {
 			return err
 		}
 		if frozen {
 			return ErrFrozen
 		}
-		if n >= MaxPerOwner {
-			return refuse("That I cannot do. You can only have up to 20 bots at the moment.")
+		if count >= MaxPerOwner {
+			return refuse("You can only have up to 20 bots.")
 		}
-		if err := checkUsername(ctx, tx, username); err != nil {
+		if secondary != "" {
+			err = checkSecondary(ctx, tx, owner, 0, secondary)
+			if err != nil {
+				return err
+			}
+		}
+		if manager != 0 {
+			err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bots b JOIN users u ON u.id=b.user_id WHERE b.user_id=$1 AND b.kind='custom' AND NOT u.disabled)", manager).Scan(&exists)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return refuse("Manager bot not found.")
+			}
+		}
+		if secondary != "" {
+			baseName = strings.TrimSuffix(username, "bot")
+			if len(baseName) > 22 {
+				baseName = baseName[:22]
+			}
+			for attempt = 0; attempt < 5; attempt++ {
+				err = checkUsername(ctx, tx, username)
+				if err == nil {
+					break
+				}
+				if !errors.As(err, &refusal) {
+					return err
+				}
+				username = baseName + "_" + hex.EncodeToString(randomKey()[:3]) + "bot"
+			}
+		} else {
+			err = checkUsername(ctx, tx, username)
+		}
+		if err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, "INSERT INTO users(username, name, password, is_bot) VALUES ($1, $2, '', true) RETURNING id", username, name).Scan(&id); err != nil {
+		err = tx.QueryRow(ctx, "INSERT INTO users(username,name,password,is_bot) VALUES($1,$2,'',true) RETURNING id", username, name).Scan(&id)
+		if err != nil {
 			return err
 		}
 		token = newToken(id)
-		_, err := tx.Exec(ctx, "INSERT INTO bots(user_id, owner_id, kind, token_hash, webapp_key, token_sealed) VALUES ($1, $2, 'custom', $3, $4, $5)",
-			id, owner, hashToken(token), WebAppKey(token), s.seal(id, token))
+		_, err = tx.Exec(ctx, "INSERT INTO bots(user_id,owner_id,kind,token_hash,webapp_key,token_sealed,manager_bot_id) VALUES($1,$2,'custom',$3,$4,$5,nullif($6::bigint,0))", id, owner, hashToken(token), WebAppKey(token), s.seal(id, token), manager)
+		if err != nil {
+			return err
+		}
+		if secondary != "" {
+			_, err = tx.Exec(ctx, "INSERT INTO bot_secondary_usernames(bot_id,username) VALUES($1,$2)", id, secondary)
+		}
+		if err != nil {
+			return err
+		}
+		if manager != 0 {
+			return queueManagedBot(ctx, tx, manager, owner, id)
+		}
 		return err
 	})
 	if err != nil {
-		return Bot{}, "", err
+		return bot, "", err
 	}
-	b, _, err := s.Get(ctx, id)
-	return b, token, err
+	bot, _, err = s.Get(ctx, id)
+	return bot, token, err
 }
 
 // Revoke replaces the bot's token; the old one stops working at once.
 func (s *Service) Revoke(ctx context.Context, bot int64) (string, error) {
-	token := newToken(bot)
-	tag, err := s.db.Exec(ctx, "UPDATE bots SET token_hash=$2, webapp_key=$3, token_sealed=$4 WHERE user_id=$1 AND kind='custom'", bot, hashToken(token), WebAppKey(token), s.seal(bot, token))
+	var token = newToken(bot)
+	var err error
+	err = pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		var owner, manager int64
+		var err error
+		err = tx.QueryRow(ctx, "UPDATE bots SET token_hash=$2,webapp_key=$3,token_sealed=$4 WHERE user_id=$1 AND kind='custom' RETURNING owner_id,coalesce(manager_bot_id,0)", bot, hashToken(token), WebAppKey(token), s.seal(bot, token)).Scan(&owner, &manager)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return refuse("Bot not found.")
+		}
+		if err != nil {
+			return err
+		}
+		if manager != 0 {
+			return queueManagedBot(ctx, tx, manager, owner, bot)
+		}
+		return nil
+	})
 	if err != nil {
 		return "", err
-	}
-	if tag.RowsAffected() == 0 {
-		return "", refuse("Bot not found.")
 	}
 	return token, nil
 }
@@ -354,10 +438,15 @@ func (s *Service) Revoke(ctx context.Context, bot int64) (string, error) {
 // username is free again. Chats with it stay, like a deleted account.
 func (s *Service) Delete(ctx context.Context, bot int64) error {
 	return pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		var err error
+		_, err = tx.Exec(ctx, "DELETE FROM bot_secondary_usernames WHERE bot_id=$1", bot)
+		if err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, "UPDATE bots SET token_hash=NULL, webapp_key=NULL, token_sealed=NULL WHERE user_id=$1", bot); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, "UPDATE users SET disabled=true, username='deleted' || id::text || 'bot' WHERE id=$1 AND is_bot", bot)
+		_, err = tx.Exec(ctx, "UPDATE users SET disabled=true, username='deleted' || id::text || 'bot' WHERE id=$1 AND is_bot", bot)
 		return err
 	})
 }

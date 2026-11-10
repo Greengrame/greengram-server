@@ -5,6 +5,7 @@ import (
 	"errors"
 	"unicode/utf8"
 
+	"github.com/Greengrame/greengram-server/internal/media"
 	"github.com/iamxvbaba/td/bin"
 	"github.com/iamxvbaba/td/tg"
 	"github.com/iamxvbaba/td/tgerr"
@@ -32,6 +33,10 @@ func DecodeMarkup(raw []byte) (tg.ReplyMarkupClass, error) {
 
 // Change is a bot's edit: new text, a new keyboard, or both.
 type Change struct {
+	Rich      []byte
+	SetRich   bool
+	Caption   bool
+	Media     *media.Ref
 	Text      *string
 	Entities  []tg.MessageEntityClass
 	SetMarkup bool
@@ -97,10 +102,10 @@ func (s *Service) EditInline(ctx context.Context, bot, shared int64, c Change) (
 
 func checkChange(c Change) error {
 	if c.Text != nil {
-		if *c.Text == "" {
+		if *c.Text == "" && !c.Caption && len(c.Rich) == 0 {
 			return errEmpty
 		}
-		if utf8.RuneCountInString(*c.Text) > MaxLength {
+		if len(c.Rich) == 0 && utf8.RuneCountInString(*c.Text) > MaxLength {
 			return errTooLong
 		}
 	}
@@ -110,56 +115,72 @@ func checkChange(c Change) error {
 // applyBotEdit writes a change to every copy of m and journals it. The copy in
 // the bot's own box, if it has one, comes back as mine; the rest are events.
 func (s *Service) applyBotEdit(ctx context.Context, tx pgx.Tx, m Msg, bot int64, c Change) (Msg, []Event, error) {
-	var (
-		mine   Msg
-		events []Event
-	)
-	text, ent, markup := m.Text, m.Entities, m.ReplyMarkup
-	changed := false
+	var mine Msg
+	var events []Event
+	var text = m.Text
+	var ent = m.Entities
+	var markup = m.ReplyMarkup
+	var rich = m.Rich
+	var ref = m.Media
+	var changed, markupChanged bool
+	var rawEnt, rawMarkup, rawMedia []byte
+	var err error
+	var rows pgx.Rows
+	var copies []Msg
+	var cp Msg
+	var update tg.UpdateClass
+	var date = m.EditDate
+	if c.Caption && m.Media.Empty() {
+		return mine, nil, tgerr.New(400, "MESSAGE_MEDIA_INVALID")
+	}
 	if c.Text != nil && (*c.Text != m.Text || !sameTL(entityList(c.Entities), entityList(m.Entities))) {
 		text, ent, changed = *c.Text, c.Entities, true
 	}
-	markupChanged := false
+	if c.SetRich && string(c.Rich) != string(m.Rich) {
+		rich, changed = c.Rich, true
+	}
+	if c.Media != nil {
+		ref = *c.Media
+		changed = true
+	}
 	if c.SetMarkup && !sameTL(c.Markup, m.ReplyMarkup) {
 		markup, markupChanged = c.Markup, true
 	}
 	if !changed && !markupChanged {
 		return mine, nil, tgerr.New(400, "MESSAGE_NOT_MODIFIED")
 	}
-	rawEnt, err := encodeEntities(ent)
+	rawEnt, err = encodeEntities(ent)
 	if err != nil {
 		return mine, nil, err
 	}
-	rawMarkup, err := EncodeMarkup(markup)
+	rawMarkup, err = EncodeMarkup(markup)
 	if err != nil {
 		return mine, nil, err
 	}
-	q := "UPDATE messages SET text=$2, entities=$3, reply_markup=$4 WHERE shared_id=$1 RETURNING " + msgCols
-	args := []any{m.Shared, text, rawEnt, rawMarkup}
+	rawMedia, err = ref.Encode()
+	if err != nil {
+		return mine, nil, err
+	}
 	if changed {
-		q = "UPDATE messages SET text=$2, entities=$3, reply_markup=$4, edit_date=$5 WHERE shared_id=$1 RETURNING " + msgCols
-		args = append(args, s.unix())
+		date = s.unix()
 	}
-	rows, err := tx.Query(ctx, q, args...)
+	rows, err = tx.Query(ctx, "UPDATE messages SET text=$2,entities=$3,reply_markup=$4,edit_date=nullif($5,0),rich=$6,media=$7,media_kind=nullif($8,''),media_id=nullif($9::bigint,0) WHERE shared_id=$1 RETURNING "+msgCols, m.Shared, text, rawEnt, rawMarkup, date, rich, rawMedia, ref.Kind, ref.ID)
 	if err != nil {
 		return mine, nil, err
 	}
-	copies, err := collect(rows)
+	copies, err = collect(rows)
 	if err != nil {
 		return mine, nil, err
 	}
-	for _, cp := range copies {
-		cp := cp
-		u, err := s.journal(ctx, tx, cp.Owner, 1, func(pts int) tg.UpdateClass {
-			return &tg.UpdateEditMessage{Message: cp.TL(), Pts: pts, PtsCount: 1}
-		})
+	for _, cp = range copies {
+		update, err = s.journal(ctx, tx, cp.Owner, 1, func(pts int) tg.UpdateClass { return &tg.UpdateEditMessage{Message: cp.TL(), Pts: pts, PtsCount: 1} })
 		if err != nil {
 			return mine, nil, err
 		}
 		if cp.Owner == bot {
 			mine = cp
 		} else {
-			events = append(events, Event{cp.Owner, u})
+			events = append(events, Event{cp.Owner, update})
 		}
 	}
 	return mine, events, nil

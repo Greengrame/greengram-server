@@ -70,7 +70,7 @@ func collectibleCode(ctx context.Context, tx pgx.Tx, phone string) error {
 // reservedOnFragment is the old sign-up trigger: any listing holds the name.
 func reservedOnFragment(ctx context.Context, tx pgx.Tx, username string) error {
 	var hit bool
-	err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||lower($1))", username).Scan(&hit)
+	err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||lower($1)) OR EXISTS(SELECT 1 FROM bot_secondary_usernames WHERE username=lower($1))", username).Scan(&hit)
 	if err == nil && hit {
 		err = fail(409, "That username is reserved on Fragment.")
 	}

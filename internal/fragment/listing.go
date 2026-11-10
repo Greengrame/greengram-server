@@ -371,7 +371,7 @@ func holder(ctx context.Context, tx pgx.Tx, kind, value, lookup string) (int64, 
 	var err error
 	if kind == "username" {
 		err = tx.QueryRow(ctx, `SELECT id, true FROM users WHERE lower(username)=$1
-			UNION ALL SELECT id, false FROM channels WHERE lower(username)=$1 AND NOT deleted LIMIT 1`, value).Scan(&id, &isUser)
+			UNION ALL SELECT bot_id,true FROM bot_secondary_usernames WHERE username=$1 UNION ALL SELECT id, false FROM channels WHERE lower(username)=$1 AND NOT deleted LIMIT 1`, value).Scan(&id, &isUser)
 	} else {
 		err = tx.QueryRow(ctx, "SELECT id, true FROM users WHERE phone_lookup=$1", lookup).Scan(&id, &isUser)
 	}

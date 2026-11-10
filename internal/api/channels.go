@@ -291,6 +291,8 @@ func (a *API) getFullChannel(ctx context.Context, r *tg.ChannelsGetFullChannelRe
 	}
 	isAdmin := m.Status == channels.Creator || m.Status == channels.Admin
 	full := &tg.ChannelFull{
+		ShareTheme:          a.peerShareTheme(ctx, id, true),
+		BotVerification:     a.peerVerification(ctx, id, true),
 		ID:                  c.ID,
 		About:               c.About,
 		ReadInboxMaxID:      m.ReadInboxMax,
@@ -1021,7 +1023,7 @@ func (a *API) discussionMessage(ctx context.Context, r *tg.MessagesGetDiscussion
 	return out, nil
 }
 
-func (a *API) getReplies(ctx context.Context, r *tg.MessagesGetRepliesRequest) (any, error) {
+func (a *API) getChannelReplies(ctx context.Context, r *tg.MessagesGetRepliesRequest) (any, error) {
 	me, err := a.me(ctx)
 	if err != nil {
 		return nil, err

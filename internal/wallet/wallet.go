@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Greengrame/greengram-server/internal/account"
+	"github.com/Greengrame/greengram-server/internal/secret"
 	"github.com/Greengrame/greengram-server/internal/settings"
 	"github.com/Greengrame/greengram-server/internal/stars"
 )
@@ -22,8 +23,8 @@ import (
 type Transfer struct {
 	From, To int64
 	Asset    string
-	Nanos    int64  // the amount at 9 decimals whatever the asset's, to fit the TL's long
-	USDCents int64  // 0 without a fresh price
+	Nanos    int64 // the amount at 9 decimals whatever the asset's, to fit the TL's long
+	USDCents int64 // 0 without a fresh price
 	ID       string
 	Text     string // what search finds, and what the row reads as without its action
 }
@@ -32,14 +33,15 @@ type Transfer struct {
 type Notifier func(ctx context.Context, t Transfer) error
 
 type Service struct {
-	db       *pgxpool.Pool
-	settings *settings.Source
-	market   MarketSource
-	charts   ChartSource
-	notify   Notifier
-	fx       *FXCache
-	photoURL func(id int64) string
-	now      func() time.Time
+	signingKey *secret.Key
+	db         *pgxpool.Pool
+	settings   *settings.Source
+	market     MarketSource
+	charts     ChartSource
+	notify     Notifier
+	fx         *FXCache
+	photoURL   func(id int64) string
+	now        func() time.Time
 }
 
 // New wires the wallet. market is usually NewMarket(MarketOptions{});

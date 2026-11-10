@@ -138,6 +138,8 @@ func (s *Server) botfatherAPI(w http.ResponseWriter, r *http.Request) {
 	}
 	saved := map[string]any{"ok": true, "msg": "Changes saved."}
 	switch method {
+	case "setSecondaryUsername":
+		answer(saved, s.Bots.SetSecondaryUsername(ctx, user, b.UserID, str("username")))
 	case "revokeAccessToken":
 		token, err := s.Bots.Revoke(ctx, b.UserID)
 		answer(map[string]any{"ok": true, "token": token}, err)

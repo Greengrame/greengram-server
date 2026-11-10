@@ -109,7 +109,7 @@ func run() error {
 	// accounts away longer than their account.setAccountTTL period
 	go eraser.Every(ctx, time.Hour)
 	market := wallet.NewMarket(wallet.MarketOptions{})
-	w := wallet.New(db.Pool, set, market, a.Notify).WithPhotos(miniapps.PhotoURL)
+	w := wallet.New(db.Pool, set, market, a.Notify).WithPhotos(miniapps.PhotoURL).WithSigningKey(instanceKey)
 	a.RegisterTopup(w)
 	frag := fragment.New(db.Pool, instanceKey, func() (string, bool) {
 		q, ok := market.Read().Fresh("TON", time.Now())

@@ -17,6 +17,7 @@ import (
 const MaxLength = 4096
 
 type Draft struct {
+	Topic    int
 	Text     string
 	Entities []tg.MessageEntityClass
 	ReplyTo  int   // id in the sender's box
@@ -26,7 +27,8 @@ type Draft struct {
 	Media   media.Ref // text is the caption then, and may be empty
 	Grouped int64
 	// an article: encoded richMessage, Text its plain words (past MaxLength)
-	Rich []byte
+	Rich  []byte
+	Quote []byte
 	// bots only; both copies carry it
 	ReplyMarkup tg.ReplyMarkupClass
 	// sent through this bot's inline mode; the keyboard above is the bot's then
@@ -88,6 +90,9 @@ func (s *Service) Send(ctx context.Context, from, to int64, d Draft) (Sent, erro
 		if err := lockBoxes(ctx, tx, from, to); err != nil {
 			return err
 		}
+		if err = s.prepareBotTopic(ctx, tx, from, to, &d); err != nil {
+			return err
+		}
 		if d.RandomID != 0 {
 			var dup bool
 			if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM messages WHERE owner_id=$1 AND random_id=$2)", from, d.RandomID).Scan(&dup); err != nil {
@@ -129,13 +134,13 @@ func (s *Service) Send(ctx context.Context, from, to int64, d Draft) (Sent, erro
 			}
 			m := Msg{Owner: owner, ID: id, Peer: peer, From: from, Out: out, Shared: shared, Date: date, Text: d.Text,
 				Entities: d.Entities, ReplyTo: reply, Fwd: d.Fwd, Media: d.Media, Grouped: d.Grouped, ReplyMarkup: d.ReplyMarkup,
-				Silent: d.Silent, Action: act, Rich: d.Rich, ViaBot: d.ViaBot}
+				Silent: d.Silent, Action: act, Rich: d.Rich, Quote: d.Quote, Topic: d.Topic, ViaBot: d.ViaBot}
 			_, err = tx.Exec(ctx, `INSERT INTO messages(owner_id, id, peer_id, from_id, out, shared_id, date, text, entities, reply_to, fwd_from_id, fwd_date, random_id,
-					media, media_kind, media_id, grouped_id, reply_markup, fwd_from_chan, fwd_from_post, fwd_from_name, silent, action, rich, via_bot_id)
+					media, media_kind, media_id, grouped_id, reply_markup, fwd_from_chan, fwd_from_post, fwd_from_name, silent, action, rich, via_bot_id, reply_quote, bot_topic_id)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, nullif($10, 0), nullif($11, 0), nullif($12, 0), $13, $14, nullif($15, ''), nullif($16::bigint, 0), nullif($17::bigint, 0), $18,
-					nullif($19::bigint, 0), nullif($20::int, 0), nullif($21, ''), $22, $23, $24, nullif($25::bigint, 0))`,
+					nullif($19::bigint, 0), nullif($20::int, 0), nullif($21, ''), $22, $23, $24, nullif($25::bigint, 0), $26, $27)`,
 				owner, id, peer, from, out, shared, date, d.Text, ent, reply, d.Fwd.User, d.Fwd.Date, random, mediaTL, d.Media.Kind, d.Media.ID, d.Grouped, markup,
-				d.Fwd.Chan, d.Fwd.Post, d.Fwd.Name, d.Silent, actRaw, d.Rich, d.ViaBot)
+				d.Fwd.Chan, d.Fwd.Post, d.Fwd.Name, d.Silent, actRaw, d.Rich, d.ViaBot, d.Quote, d.Topic)
 			if err != nil {
 				return m, err
 			}

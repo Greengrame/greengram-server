@@ -11,6 +11,7 @@ import (
 
 // Msg is one row: a message as one box sees it.
 type Msg struct {
+	Topic    int
 	Owner    int64
 	ID       int
 	Peer     int64
@@ -32,13 +33,14 @@ type Msg struct {
 	// set on a service message (a gift, a pin); Text then only feeds search
 	Action tg.MessageActionClass
 	// an article: encoded richMessage, Text is its plain words
-	Rich []byte
+	Rich  []byte
+	Quote []byte
 	// sent through this bot's inline mode
 	ViaBot int64
 }
 
 const msgCols = "owner_id, id, peer_id, from_id, out, shared_id, date, text, entities, reply_to, fwd_from_id, fwd_date, edit_date, media, media_kind, media_id, coalesce(grouped_id, 0), reply_markup, " +
-	"coalesce(fwd_from_chan, 0), coalesce(fwd_from_post, 0), coalesce(fwd_from_name, ''), pinned, silent, action, rich, coalesce(via_bot_id, 0)"
+	"coalesce(fwd_from_chan, 0), coalesce(fwd_from_post, 0), coalesce(fwd_from_name, ''), pinned, silent, action, rich, coalesce(via_bot_id, 0), reply_quote, bot_topic_id"
 
 func scanMsg(row pgx.Row) (Msg, error) {
 	var (
@@ -55,7 +57,7 @@ func scanMsg(row pgx.Row) (Msg, error) {
 		action   []byte
 	)
 	if err := row.Scan(&m.Owner, &m.ID, &m.Peer, &m.From, &m.Out, &m.Shared, &m.Date, &m.Text, &ent, &reply, &fwdFrom, &fwdDate, &editDate,
-		&raw, &kind, &mediaID, &m.Grouped, &markup, &m.Fwd.Chan, &m.Fwd.Post, &m.Fwd.Name, &m.Pinned, &m.Silent, &action, &m.Rich, &m.ViaBot); err != nil {
+		&raw, &kind, &mediaID, &m.Grouped, &markup, &m.Fwd.Chan, &m.Fwd.Post, &m.Fwd.Name, &m.Pinned, &m.Silent, &action, &m.Rich, &m.ViaBot, &m.Quote, &m.Topic); err != nil {
 		return m, err
 	}
 	if reply != nil {
@@ -149,8 +151,8 @@ func (m Msg) TL() tg.MessageClass {
 	if m.Action != nil {
 		s := &tg.MessageService{ID: m.ID, Out: m.Out, PeerID: &tg.PeerUser{UserID: ids.Client(m.Peer)}, Date: m.Date, Action: m.Action, Silent: m.Silent}
 		s.SetFromID(&tg.PeerUser{UserID: ids.Client(m.From)})
-		if m.ReplyTo != 0 {
-			s.SetReplyTo(&tg.MessageReplyHeader{ReplyToMsgID: m.ReplyTo})
+		if m.ReplyTo != 0 || m.Topic != 0 && m.ID != m.Topic {
+			s.SetReplyTo(m.privateReplyHeader())
 		}
 		if p, ok := m.SavedPeer(); ok {
 			s.SetSavedPeerID(SavedPeerTL(p, m.Owner))
@@ -158,14 +160,15 @@ func (m Msg) TL() tg.MessageClass {
 		return s
 	}
 	out := &tg.Message{
-		Pinned:  m.Pinned,
-		Silent:  m.Silent,
-		ID:      m.ID,
-		Out:     m.Out,
-		FromID:  &tg.PeerUser{UserID: ids.Client(m.From)},
-		PeerID:  &tg.PeerUser{UserID: ids.Client(m.Peer)},
-		Date:    m.Date,
-		Message: m.Text,
+		Noforwards: media.WidgetKey(m.Media) != "",
+		Pinned:     m.Pinned,
+		Silent:     m.Silent,
+		ID:         m.ID,
+		Out:        m.Out,
+		FromID:     &tg.PeerUser{UserID: ids.Client(m.From)},
+		PeerID:     &tg.PeerUser{UserID: ids.Client(m.Peer)},
+		Date:       m.Date,
+		Message:    m.Text,
 	}
 	if m.ViaBot != 0 {
 		out.SetViaBotID(ids.Client(m.ViaBot))
@@ -173,8 +176,8 @@ func (m Msg) TL() tg.MessageClass {
 	if len(m.Entities) > 0 {
 		out.SetEntities(m.Entities)
 	}
-	if m.ReplyTo != 0 {
-		out.SetReplyTo(&tg.MessageReplyHeader{ReplyToMsgID: m.ReplyTo})
+	if m.ReplyTo != 0 || m.Topic != 0 && m.ID != m.Topic {
+		out.SetReplyTo(m.privateReplyHeader())
 	}
 	if h, ok := m.Fwd.TL(); ok {
 		out.SetFwdFrom(h)

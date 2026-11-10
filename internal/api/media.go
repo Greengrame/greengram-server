@@ -137,7 +137,7 @@ func (a *API) sendMedia(ctx context.Context, r *tg.MessagesSendMediaRequest) (an
 		reply, topic = replyID(r.ReplyTo), replyTopic(r.ReplyTo)
 	}
 	a.presence.set(me.ID, true)
-	out, err := a.sendOrSchedule(ctx, me, to, []outgoing{{text: r.Message, entities: r.Entities, replyTo: reply, topic: topic, randomID: r.RandomID, media: ref, silent: r.Silent}},
+	out, err := a.sendOrSchedule(ctx, me, to, []outgoing{{text: r.Message, entities: r.Entities, replyTo: reply, quote: nativeReplyQuote(r.ReplyTo), topic: topic, randomID: r.RandomID, media: ref, silent: r.Silent}},
 		r.ScheduleDate, r.ScheduleRepeatPeriod)
 	if err == nil {
 		a.noteSent(ctx, me, ref)
@@ -208,7 +208,7 @@ func (a *API) sendMultiMedia(ctx context.Context, r *tg.MessagesSendMultiMediaRe
 		if err != nil {
 			return nil, err
 		}
-		list = append(list, outgoing{text: it.Message, entities: it.Entities, replyTo: reply, topic: topic, randomID: it.RandomID, media: ref, grouped: group, silent: r.Silent})
+		list = append(list, outgoing{text: it.Message, entities: it.Entities, replyTo: reply, quote: nativeReplyQuote(r.ReplyTo), topic: topic, randomID: it.RandomID, media: ref, grouped: group, silent: r.Silent})
 	}
 	a.presence.set(me.ID, true)
 	out, err := a.sendOrSchedule(ctx, me, to, list, r.ScheduleDate, 0)

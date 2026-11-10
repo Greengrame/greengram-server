@@ -337,7 +337,7 @@ func (s *Service) SearchUsernames(ctx context.Context, prefix string, limit int)
 	like := strings.ReplaceAll(prefix, "_", `\_`) + "%"
 	rows, err := s.db.Query(ctx, "SELECT "+userCols+` FROM users WHERE NOT disabled AND NOT is_system
 		AND (username_public AND (lower(username) LIKE $1 OR is_bot AND (lower(name) LIKE $1 OR lower(name) LIKE '% ' || $1))
-			OR EXISTS(SELECT 1 FROM fragment_items f WHERE f.owner_id = users.id AND f.kind = 'username' AND f.active AND NOT f.listed AND lower(f.title) LIKE '@' || $1))
+			OR EXISTS(SELECT 1 FROM fragment_items f WHERE f.owner_id = users.id AND f.kind = 'username' AND f.active AND NOT f.listed AND lower(f.title) LIKE '@' || $1) OR EXISTS(SELECT 1 FROM bot_secondary_usernames n WHERE n.bot_id=users.id AND n.username LIKE $1))
 		ORDER BY lower(username) LIKE $1 DESC, length(username), id LIMIT $2`, like, limit)
 	if err != nil {
 		return nil, err

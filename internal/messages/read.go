@@ -14,6 +14,7 @@ import (
 // start at OffsetID (or before OffsetDate), skip AddOffset (negative reaches
 // newer messages), keep MinID < id < MaxID.
 type HistoryQuery struct {
+	Topic      int
 	OffsetID   int
 	OffsetDate int
 	AddOffset  int
@@ -67,10 +68,10 @@ func (s *Service) SavedHistory(ctx context.Context, owner, savedPeer int64, q Hi
 func (s *Service) history(ctx context.Context, col string, owner, peer int64, q HistoryQuery) ([]Msg, int, error) {
 	limit := clampLimit(q.Limit, 100)
 	var total int
-	if err := s.db.QueryRow(ctx, "SELECT count(*) FROM messages WHERE owner_id=$1 AND "+col+"=$2"+q.Filter.sql(), owner, peer).Scan(&total); err != nil {
+	if err := s.db.QueryRow(ctx, "SELECT count(*) FROM messages WHERE owner_id=$1 AND "+col+"=$2"+q.sql(), owner, peer).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	bound := "TRUE" + q.Filter.sql()
+	bound := "TRUE" + q.sql()
 	args := []any{owner, peer}
 	if q.MaxID > 0 {
 		args = append(args, q.MaxID)
@@ -338,4 +339,11 @@ func (s *Service) AllDialogs(ctx context.Context, owner int64) ([]Dialog, []Msg,
 	}
 	tops, err := s.tops(ctx, owner, list)
 	return list, tops, err
+}
+
+func (q HistoryQuery) sql() string {
+	if q.Topic > 0 {
+		return q.Filter.sql() + " AND bot_topic_id=" + strconv.Itoa(q.Topic)
+	}
+	return q.Filter.sql()
 }

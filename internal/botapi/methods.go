@@ -100,7 +100,7 @@ func (s *Server) getMe(c *call) (any, error) {
 	return map[string]any{
 		"id": ids.Client(b.UserID), "is_bot": true, "first_name": first, "last_name": last, "username": b.Username,
 		"can_join_groups": b.State.AllowGroups(), "can_read_all_group_messages": !b.State.GroupPrivacy(), "supports_inline_queries": bool(b.State.Settings.Inline),
-		"can_connect_to_business": false, "has_main_web_app": b.MainAppURL != "",
+		"has_topics_enabled": bool(b.State.Settings.Topics), "allows_users_to_create_topics": bool(b.State.Settings.Topics), "can_manage_bots": !b.BuiltIn(), "can_connect_to_business": !b.BuiltIn(), "has_main_web_app": b.MainAppURL != "",
 	}, nil
 }
 
@@ -245,6 +245,9 @@ func markup(p params) (tg.ReplyMarkupClass, bool, error) {
 	if err != nil || !ok {
 		return nil, ok, err
 	}
+	if err = validateManagedMarkup(m); err != nil {
+		return nil, true, err
+	}
 	t, err := tgMarkup(m)
 	return t, true, err
 }
@@ -263,7 +266,10 @@ func replyTo(p params) (int, error) {
 
 // Out is a message a bot sends.
 type Out struct {
+	Topic    int
 	Text     string
+	Rich     []byte
+	Quote    []byte
 	Entities []tg.MessageEntityClass
 	Markup   tg.ReplyMarkupClass
 	ReplyTo  int
@@ -272,26 +278,32 @@ type Out struct {
 
 // send posts as the bot and pushes it to the chat.
 func (s *Server) send(ctx context.Context, bot bots.Bot, c chat, o Out) (*apiMessage, error) {
-	v := s.view(ctx, bot)
+	var v = s.view(ctx, bot)
+	var channelSent channels.Sent
+	var privateSent messages.Sent
+	var blocked bool
+	var err error
 	if c.channel != 0 {
-		sent, err := s.Chans.Send(ctx, bot.UserID, c.channel, channels.Draft{Text: o.Text, Entities: o.Entities, ReplyTo: o.ReplyTo, ReplyMarkup: o.Markup})
+		channelSent, err = s.Chans.Send(ctx, bot.UserID, c.channel, channels.Draft{Text: o.Text, Rich: o.Rich, Quote: o.Quote, TopMsgID: o.Topic, Entities: o.Entities, ReplyTo: o.ReplyTo, ReplyMarkup: o.Markup, Media: o.Media})
 		if err != nil {
 			return nil, err
 		}
-		s.Push.DeliverChannel(sent.Events)
-		return v.channelMsg(sent.Msg, 0), nil
+		s.Push.DeliverChannel(channelSent.Events)
+		return v.channelMsg(channelSent.Msg, 0), nil
 	}
-	if _, blocked, err := s.Msgs.Blocks(ctx, bot.UserID, c.user); err != nil {
-		return nil, err
-	} else if blocked {
-		return nil, forbidden("bot was blocked by the user")
-	}
-	sent, err := s.Msgs.Send(ctx, bot.UserID, c.user, messages.Draft{Text: o.Text, Entities: o.Entities, ReplyTo: o.ReplyTo, ReplyMarkup: o.Markup, Media: o.Media})
+	_, blocked, err = s.Msgs.Blocks(ctx, bot.UserID, c.user)
 	if err != nil {
 		return nil, err
 	}
-	s.Push.Deliver(sent.Events)
-	return v.private(sent.Msg, 0), nil
+	if blocked {
+		return nil, forbidden("bot was blocked by the user")
+	}
+	privateSent, err = s.Msgs.Send(ctx, bot.UserID, c.user, messages.Draft{Text: o.Text, Rich: o.Rich, Quote: o.Quote, Topic: o.Topic, Entities: o.Entities, ReplyTo: o.ReplyTo, ReplyMarkup: o.Markup, Media: o.Media})
+	if err != nil {
+		return nil, err
+	}
+	s.Push.Deliver(privateSent.Events)
+	return v.private(privateSent.Msg, 0), nil
 }
 
 // SendPrivate is for the built-in bots, which reply in private chats.
@@ -301,26 +313,33 @@ func (s *Server) SendPrivate(ctx context.Context, bot bots.Bot, user int64, o Ou
 }
 
 func (s *Server) sendMessage(c *call) (any, error) {
-	to, err := s.chat(c.ctx, c.bot, c.p, "chat_id")
+	var to chat
+	var err error
+	var out Out
+	if c.p.has("rich_message") {
+		return s.sendRichMessage(c)
+	}
+	to, err = s.messageChat(c)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.writable(c.ctx, c.bot, to); err != nil {
-		return nil, err
-	}
-	t, ents, err := text(c.p, "text", "entities")
+	err = s.messageWritable(c, to)
 	if err != nil {
 		return nil, err
 	}
-	mk, _, err := markup(c.p)
+	out.Text, out.Entities, err = text(c.p, "text", "entities")
 	if err != nil {
 		return nil, err
 	}
-	reply, err := replyTo(c.p)
+	out.Markup, _, err = markup(c.p)
 	if err != nil {
 		return nil, err
 	}
-	return s.send(c.ctx, c.bot, to, Out{Text: t, Entities: ents, Markup: mk, ReplyTo: reply})
+	out.ReplyTo, err = replyTo(c.p)
+	if err != nil {
+		return nil, err
+	}
+	return s.sendCall(c, to, out)
 }
 
 // edit applies a change to one of the bot's messages and pushes it.
@@ -354,13 +373,38 @@ func (s *Server) edit(c *call, ch messages.Change) (any, error) {
 }
 
 func (s *Server) editMessageText(c *call) (any, error) {
-	t, ents, err := text(c.p, "text", "entities")
+	var value string
+	var entities []tg.MessageEntityClass
+	var ch = messages.Change{SetMarkup: true, SetRich: true}
+	var err error
+	if c.p.has("rich_message") {
+		ch.Rich, value, err = s.readRich(c)
+	} else {
+		value, entities, err = text(c.p, "text", "entities")
+	}
 	if err != nil {
 		return nil, err
 	}
-	// no reply_markup takes the keyboard off, as on Telegram
-	ch := messages.Change{Text: &t, Entities: ents, SetMarkup: true}
-	if ch.Markup, _, err = markup(c.p); err != nil {
+	ch.Text, ch.Entities = &value, entities
+	ch.Markup, _, err = markup(c.p)
+	if err != nil {
+		return nil, err
+	}
+	return s.edit(c, ch)
+}
+
+func (s *Server) editMessageCaption(c *call) (any, error) {
+	var value string
+	var entities []tg.MessageEntityClass
+	var ch = messages.Change{Caption: true}
+	var err error
+	value, entities, err = botCaption(c.p)
+	if err != nil {
+		return nil, err
+	}
+	ch.Text, ch.Entities = &value, entities
+	ch.Markup, ch.SetMarkup, err = markup(c.p)
+	if err != nil {
 		return nil, err
 	}
 	return s.edit(c, ch)
@@ -512,7 +556,7 @@ func (s *Server) getChat(c *call) (any, error) {
 		if ch.About != "" {
 			out["description"] = ch.About
 		}
-		return out, nil
+		return s.chatExtensions(c, to, out)
 	}
 	out["first_name"] = ac.FirstName
 	if ac.LastName != "" {
@@ -524,7 +568,7 @@ func (s *Server) getChat(c *call) (any, error) {
 	if u, ok := v.users[to.user]; ok && u.Bio != "" {
 		out["bio"] = u.Bio
 	}
-	return out, nil
+	return s.chatExtensions(c, to, out)
 }
 
 func memberStatus(m channels.Membership) string {

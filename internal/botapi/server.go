@@ -13,6 +13,7 @@ import (
 	"io"
 	"log/slog"
 	"mime"
+	"mime/multipart"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -25,7 +26,10 @@ import (
 	"github.com/Greengrame/greengram-server/internal/account"
 	"github.com/Greengrame/greengram-server/internal/bots"
 	"github.com/Greengrame/greengram-server/internal/channels"
+	"github.com/Greengrame/greengram-server/internal/media"
 	"github.com/Greengrame/greengram-server/internal/messages"
+	"github.com/Greengrame/greengram-server/internal/stars"
+	"github.com/Greengrame/greengram-server/internal/wallet"
 )
 
 // Pusher sends journaled events to people's open apps (internal/api).
@@ -40,6 +44,10 @@ type Server struct {
 	Msgs     *messages.Service
 	Chans    *channels.Service
 	Push     Pusher
+	Media    *media.Service
+	Stars    *stars.Service
+	BaseURL  string
+	Wallet   *wallet.Service
 
 	// the running getUpdates of each bot; see getUpdates
 	mu    sync.Mutex
@@ -57,8 +65,17 @@ var pathRe = regexp.MustCompile(`^/bot([0-9]{1,20}:[A-Za-z0-9_-]{1,128})/([A-Za-
 // can't match "/bot<token>", the token is glued to the segment.
 func (s *Server) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var m []string
+		if strings.HasPrefix(r.URL.Path, "/__greengram/widgets/") {
+			s.serveWidget(w, r)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/file/bot") {
+			s.serveFile(w, r)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/bot") {
-			if m := pathRe.FindStringSubmatch(r.URL.Path); m != nil {
+			if m = pathRe.FindStringSubmatch(r.URL.Path); m != nil {
 				s.serve(w, r, m[1], m[2])
 				return
 			}
@@ -101,12 +118,19 @@ var tgDescriptions = map[string]*apiError{
 
 func asAPIError(err error) *apiError {
 	var e *apiError
+	var ae *account.Error
+	if errors.As(err, &ae) {
+		return &apiError{ae.Status, ae.Message, 0}
+	}
 	if errors.As(err, &e) {
 		return e
 	}
 	var be *bots.Error
 	if errors.As(err, &be) {
 		return &apiError{400, "Bad Request: " + be.Message, 0}
+	}
+	if errors.Is(err, bots.ErrWidgetRateLimited) {
+		return &apiError{429, "Too Many Requests: widget rate limit exceeded", 5}
 	}
 	if errors.Is(err, bots.ErrQueryInvalid) {
 		return &apiError{400, "Bad Request: " + err.Error(), 0}
@@ -138,12 +162,26 @@ func write(w http.ResponseWriter, status int, v reply) {
 }
 
 func (s *Server) serve(w http.ResponseWriter, r *http.Request, token, method string) {
+	var ctx context.Context
+	var bot bots.Bot
+	var ok bool
+	var err error
+	var p params
+	var fn func(*Server, *call) (any, error)
+	var out any
+	var e *apiError
+	var rep reply
+	defer func() {
+		if r.MultipartForm != nil {
+			r.MultipartForm.RemoveAll()
+		}
+	}()
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		write(w, 405, reply{ErrorCode: 405, Description: "Method Not Allowed"})
 		return
 	}
-	ctx := r.Context()
-	bot, ok, err := s.Bots.ByToken(ctx, token)
+	ctx = r.Context()
+	bot, ok, err = s.Bots.ByToken(ctx, token)
 	if err != nil {
 		slog.Error("botapi: token", "err", err)
 		write(w, 500, reply{ErrorCode: 500, Description: "Internal Server Error"})
@@ -153,13 +191,13 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, token, method str
 		write(w, 401, reply{ErrorCode: 401, Description: "Unauthorized"})
 		return
 	}
-	p, err := readParams(r)
+	p, err = readParams(r)
 	if err != nil {
-		e := asAPIError(err)
+		e = asAPIError(err)
 		write(w, e.code, reply{ErrorCode: e.code, Description: e.desc})
 		return
 	}
-	fn, ok := methods[strings.ToLower(method)]
+	fn, ok = methods[strings.ToLower(method)]
 	if !ok {
 		write(w, 404, reply{ErrorCode: 404, Description: "Not Found: method not found"})
 		return
@@ -169,14 +207,17 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, token, method str
 		write(w, 403, reply{ErrorCode: 403, Description: "Forbidden: this bot or its owner is frozen"})
 		return
 	}
-	out, err := fn(s, &call{ctx: ctx, bot: bot, p: p})
+	err = validateMessageParameters(p)
+	if err == nil {
+		out, err = fn(s, &call{ctx: ctx, bot: bot, p: p})
+	}
 	if err != nil {
-		e := asAPIError(err)
+		e = asAPIError(err)
 		if e == nil {
 			slog.Error("botapi: "+method, "bot", bot.UserID, "err", err)
 			e = &apiError{500, "Internal Server Error", 0}
 		}
-		rep := reply{ErrorCode: e.code, Description: e.desc}
+		rep = reply{ErrorCode: e.code, Description: e.desc}
 		if e.retryAfter > 0 {
 			rep.Parameters = &struct {
 				RetryAfter int `json:"retry_after,omitempty"`
@@ -195,49 +236,64 @@ type params map[string]any
 const maxBody = 1 << 20
 
 func readParams(r *http.Request) (params, error) {
-	p := params{}
-	for k, v := range r.URL.Query() {
+	var p = params{}
+	var k string
+	var v []string
+	var files []*multipart.FileHeader
+	var ct string
+	var raw []byte
+	var err error
+	var d *json.Decoder
+	var body map[string]any
+	var value any
+	for k, v = range r.URL.Query() {
 		p[k] = v[0]
 	}
 	if r.Method != http.MethodPost {
 		return p, nil
 	}
-	ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	ct, _, _ = mime.ParseMediaType(r.Header.Get("Content-Type"))
 	switch ct {
 	case "", "application/json":
-		raw, err := io.ReadAll(io.LimitReader(r.Body, maxBody))
+		raw, err = io.ReadAll(io.LimitReader(r.Body, maxBody+1))
 		if err != nil {
 			return nil, bad("can't read the request")
+		}
+		if len(raw) > maxBody {
+			return nil, bad("request body is too large")
 		}
 		if len(bytes.TrimSpace(raw)) == 0 {
 			return p, nil
 		}
-		d := json.NewDecoder(bytes.NewReader(raw))
+		d = json.NewDecoder(bytes.NewReader(raw))
 		d.UseNumber()
-		var body map[string]any
-		if err := d.Decode(&body); err != nil {
+		if err = d.Decode(&body); err != nil {
 			return nil, bad("can't parse JSON object")
 		}
-		for k, v := range body {
-			p[k] = v
+		for k, value = range body {
+			p[k] = value
 		}
 	case "application/x-www-form-urlencoded":
 		r.Body = http.MaxBytesReader(nil, r.Body, maxBody)
-		if err := r.ParseForm(); err != nil {
+		if err = r.ParseForm(); err != nil {
 			return nil, bad("can't parse the form")
 		}
-		for k, v := range r.PostForm {
+		for k, v = range r.PostForm {
 			p[k] = v[0]
 		}
 	case "multipart/form-data":
-		// uploads come with media (phase 6); fields work already. Without
-		// the cap, file parts past maxBody go to temp files of any size.
-		r.Body = http.MaxBytesReader(nil, r.Body, maxBody)
-		if err := r.ParseMultipartForm(maxBody); err != nil {
+		r.Body = http.MaxBytesReader(nil, r.Body, maxUpload+maxBody)
+		if err = r.ParseMultipartForm(maxBody); err != nil {
 			return nil, bad("can't parse the form")
 		}
-		for k, v := range r.MultipartForm.Value {
+		for k, v = range r.MultipartForm.Value {
 			p[k] = v[0]
+		}
+		for k, files = range r.MultipartForm.File {
+			if len(files) != 1 || files[0].Size > maxUpload {
+				return nil, bad("file is too big or field contains multiple files")
+			}
+			p[k] = files[0]
 		}
 	default:
 		return nil, bad("unsupported content type")
@@ -310,9 +366,10 @@ func (p params) json(k string, dst any) (bool, error) {
 }
 
 type call struct {
-	ctx context.Context
-	bot bots.Bot
-	p   params
+	ctx       context.Context
+	bot       bots.Bot
+	p         params
+	ephemeral *ephemeralParameters
 }
 
 type method func(*Server, *call) (any, error)
@@ -320,6 +377,7 @@ type method func(*Server, *call) (any, error)
 var methods map[string]method
 
 func init() {
+	var entry struct{ name, field string }
 	methods = map[string]method{
 		"getme":                  (*Server).getMe,
 		"logout":                 func(*Server, *call) (any, error) { return true, nil },
@@ -353,11 +411,46 @@ func init() {
 		"setmyshortdescription":  (*Server).setMyShortDescription,
 		"getmyshortdescription":  (*Server).getMyShortDescription,
 	}
-	// files arrive with phase 6
-	for _, m := range []string{"sendphoto", "senddocument", "sendvideo", "sendaudio", "sendvoice", "sendanimation", "sendsticker",
-		"sendmediagroup", "sendvideonote", "getfile", "editmessagecaption", "editmessagemedia"} {
-		methods[m] = func(*Server, *call) (any, error) { return nil, bad("files aren't supported on this server yet") }
+	for _, entry = range []struct{ name, field string }{
+		{"sendphoto", "photo"}, {"senddocument", "document"}, {"sendvideo", "video"},
+		{"sendaudio", "audio"}, {"sendvoice", "voice"}, {"sendanimation", "animation"},
+		{"sendsticker", "sticker"}, {"sendvideonote", "video_note"},
+	} {
+		methods[entry.name] = fileMethod(entry.field)
 	}
+	methods["editmessagecaption"] = (*Server).editMessageCaption
+	methods["editephemeralmessagemedia"] = ephemeralMethod("media")
+	methods["sendrichmessage"] = (*Server).sendRichMessage
+	methods["getmanagedbottoken"] = managedTokenMethod(false)
+	methods["replacemanagedbottoken"] = managedTokenMethod(true)
+	methods["createforumtopic"] = topicMethod("create")
+	methods["editforumtopic"] = topicMethod("edit")
+	methods["closeforumtopic"] = topicMethod("close")
+	methods["reopenforumtopic"] = topicMethod("reopen")
+	methods["deleteforumtopic"] = topicMethod("delete")
+	methods["sendlivephoto"] = (*Server).sendLivePhoto
+	methods["getfile"] = (*Server).getFile
+	methods["sendcontact"] = (*Server).sendContact
+	methods["sendlocation"] = (*Server).sendLocation
+	methods["sendvenue"] = (*Server).sendVenue
+	methods["senddice"] = (*Server).sendDice
+	methods["getuniquegift"] = (*Server).getUniqueGift
+	methods["getbusinessconnection"] = (*Server).getBusinessConnection
+	methods["deletebusinessaccountgift"] = (*Server).deleteBusinessAccountGift
+	methods["verifyuser"] = verificationMethod(true, false)
+	methods["verifychat"] = verificationMethod(false, false)
+	methods["removeuserverification"] = verificationMethod(true, true)
+	methods["removechatverification"] = verificationMethod(false, true)
+	methods["sendwidget"] = widgetSendMethod(false)
+	methods["sendsharedwidget"] = widgetSendMethod(true)
+	methods["editmessagewidgetdata"] = widgetEditMethod(false)
+	methods["editsharedwidgetdata"] = widgetEditMethod(true)
+	methods["answerwidgetquery"] = (*Server).answerWidgetQuery
+	methods["getchatsharethemebackdrops"] = (*Server).getChatShareThemeBackdrops
+	methods["editephemeralmessagetext"] = ephemeralMethod("text")
+	methods["editephemeralmessagecaption"] = ephemeralMethod("caption")
+	methods["editephemeralmessagereplymarkup"] = ephemeralMethod("markup")
+	methods["deleteephemeralmessage"] = ephemeralMethod("delete")
 }
 
 func (s *Server) now() int { return int(time.Now().Unix()) }

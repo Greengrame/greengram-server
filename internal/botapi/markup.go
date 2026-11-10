@@ -39,10 +39,11 @@ type apiInlineButton struct {
 }
 
 type apiButton struct {
-	Text            string     `json:"text"`
-	RequestContact  bool       `json:"request_contact,omitempty"`
-	RequestLocation bool       `json:"request_location,omitempty"`
-	WebApp          *apiWebApp `json:"web_app,omitempty"`
+	Managed         *apiManagedBotButton `json:"request_managed_bot,omitempty"`
+	Text            string               `json:"text"`
+	RequestContact  bool                 `json:"request_contact,omitempty"`
+	RequestLocation bool                 `json:"request_location,omitempty"`
+	WebApp          *apiWebApp           `json:"web_app,omitempty"`
 }
 
 // UnmarshalJSON also takes the plain-string form Bot API allows for reply
@@ -134,6 +135,8 @@ func tgMarkup(m apiMarkup) (tg.ReplyMarkupClass, error) {
 				}
 				btn := tg.KeyboardButton{Text: b.Text, Type: &tg.ButtonTypeDefault{}}
 				switch {
+				case b.Managed != nil:
+					btn.Type = managedButtonType(b.Managed)
 				case b.RequestContact:
 					btn.Type = &tg.ButtonTypeRequestPhone{}
 				case b.RequestLocation:

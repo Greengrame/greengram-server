@@ -24,7 +24,7 @@ const MaxLength = 4096
 const msgCols = `channel_id, id, from_id, date, post, text, entities, action, coalesce(reply_to, 0), coalesce(fwd_from_id, 0),
 	coalesce(fwd_date, 0), coalesce(edit_date, 0), coalesce(fwd_channel_id, 0), coalesce(fwd_channel_msg, 0),
 	media, media_kind, media_id, coalesce(grouped_id, 0), reply_markup,
-	coalesce(fwd_from_chan, 0), coalesce(fwd_from_post, 0), coalesce(fwd_from_name, ''), coalesce(topic_id, 0), pinned, silent, rich, coalesce(via_bot_id, 0)`
+	coalesce(fwd_from_chan, 0), coalesce(fwd_from_post, 0), coalesce(fwd_from_name, ''), coalesce(topic_id, 0), pinned, silent, rich, coalesce(via_bot_id, 0), reply_quote`
 
 func scanMsg(row pgx.Row) (Msg, error) {
 	var m Msg
@@ -32,7 +32,7 @@ func scanMsg(row pgx.Row) (Msg, error) {
 	var kind *string
 	var mediaID *int64
 	err := row.Scan(&m.Channel, &m.ID, &m.From, &m.Date, &m.Post, &m.Text, &ent, &action, &m.ReplyTo, &m.Fwd.User, &m.Fwd.Date, &m.EditDate, &m.FwdChanID, &m.FwdChanMs,
-		&raw, &kind, &mediaID, &m.Grouped, &markup, &m.Fwd.Chan, &m.Fwd.Post, &m.Fwd.Name, &m.Topic, &m.Pinned, &m.Silent, &m.Rich, &m.ViaBot)
+		&raw, &kind, &mediaID, &m.Grouped, &markup, &m.Fwd.Chan, &m.Fwd.Post, &m.Fwd.Name, &m.Topic, &m.Pinned, &m.Silent, &m.Rich, &m.ViaBot, &m.Quote)
 	if err != nil {
 		return m, err
 	}
@@ -113,7 +113,8 @@ type Draft struct {
 	// users the text names; in groups they get a mention
 	Mentions []int64
 	// an article: encoded richMessage, Text its plain words (past MaxLength)
-	Rich []byte
+	Rich  []byte
+	Quote []byte
 	// sent through this bot's inline mode; ReplyMarkup is the bot's then
 	ViaBot int64
 }
@@ -217,7 +218,7 @@ func (s *Service) Send(ctx context.Context, user, channel int64, d Draft) (Sent,
 			return err
 		}
 		m := Msg{Channel: channel, From: user, Post: !c.Megagroup, Text: d.Text, Entities: d.Entities, ReplyTo: d.ReplyTo, Fwd: d.Fwd,
-			Media: d.Media, Grouped: d.Grouped, ReplyMarkup: d.ReplyMarkup, Topic: topic, Silent: d.Silent, Rich: d.Rich, ViaBot: d.ViaBot}
+			Media: d.Media, Grouped: d.Grouped, ReplyMarkup: d.ReplyMarkup, Topic: topic, Silent: d.Silent, Rich: d.Rich, Quote: d.Quote, ViaBot: d.ViaBot}
 		m, u, err := s.addMessage(ctx, tx, m, random)
 		if err != nil {
 			return err

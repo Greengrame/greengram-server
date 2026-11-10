@@ -32,6 +32,7 @@ func (f *flexBool) UnmarshalJSON(raw []byte) error {
 // shape. Only settings something acts on go here.
 type State struct {
 	Settings struct {
+		Topics flexBool  `json:"topics"`
 		Groups *flexBool `json:"grps"`
 		// nil is on: migration 0340 wrote false for the bots that predate it
 		Privacy       *flexBool `json:"priv"`

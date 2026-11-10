@@ -28,7 +28,7 @@ const (
 // never makes them; an embed in a chat message is a stranger's HTML.
 var richRefused = map[string]bool{
 	"PageBlockEmbed": true, "PageBlockEmbedPost": true, "PageBlockChannel": true, "PageBlockCover": true,
-	"PageBlockRelatedArticles": true, "PageBlockMap": true, "PageBlockAuthorDate": true, "PageBlockAnchor": true, "PageBlockUnsupported": true,
+	"PageBlockRelatedArticles": true, "PageBlockAuthorDate": true, "PageBlockUnsupported": true,
 }
 
 var richSchemes = map[string]bool{"": true, "http": true, "https": true, "tg": true, "ton": true, "mailto": true, "tel": true}

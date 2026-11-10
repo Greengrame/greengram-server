@@ -21,9 +21,7 @@ const maxActiveAliases = 10
 // name a channel is using stays off the profile, whoever owns it.
 // fragment_items belongs to internal/fragment, plain SQL like collectible.go.
 func aliasesCol(p string) string {
-	return "ARRAY(SELECT CASE WHEN f.active THEN '+' ELSE '-' END || substr(f.title, 2) FROM fragment_items f WHERE f.owner_id = " + p +
-		"id AND f.kind = 'username' AND NOT f.listed AND NOT EXISTS(SELECT 1 FROM channels c WHERE lower(c.username) = lower(substr(f.title, 2)) AND NOT c.deleted)" +
-		" ORDER BY f.position, f.id)"
+	return "ARRAY(SELECT names.entry FROM (SELECT CASE WHEN f.active THEN '+' ELSE '-' END || substr(f.title,2) AS entry,f.position,f.id FROM fragment_items f WHERE f.owner_id=" + p + "id AND f.kind='username' AND NOT f.listed AND NOT EXISTS(SELECT 1 FROM channels c WHERE lower(c.username)=lower(substr(f.title,2)) AND NOT c.deleted) UNION ALL SELECT '+'||n.username AS entry,0 AS position,n.bot_id::text AS id FROM bot_secondary_usernames n WHERE n.bot_id=" + p + "id) names ORDER BY names.position,names.id)"
 }
 
 func parseAliases(raw []string, primary string) []Alias {
@@ -45,7 +43,7 @@ func (s *Service) ownsCollectible(ctx context.Context, user int64, name string) 
 // UserByAlias finds who shows name as an active collectible username.
 func (s *Service) UserByAlias(ctx context.Context, name string) (User, bool, error) {
 	var id int64
-	err := s.db.QueryRow(ctx, "SELECT owner_id FROM fragment_items WHERE kind='username' AND lower(title)='@'||$1 AND active AND NOT listed AND owner_id IS NOT NULL", normUsername(name)).Scan(&id)
+	err := s.db.QueryRow(ctx, "SELECT owner_id FROM fragment_items WHERE kind='username' AND lower(title)='@'||$1 AND active AND NOT listed AND owner_id IS NOT NULL UNION ALL SELECT bot_id FROM bot_secondary_usernames WHERE username=$1 LIMIT 1", normUsername(name)).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return User{}, false, nil
 	}

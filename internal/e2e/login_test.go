@@ -42,6 +42,7 @@ import (
 	"github.com/Greengrame/greengram-server/internal/stars"
 	"github.com/Greengrame/greengram-server/internal/store"
 	"github.com/Greengrame/greengram-server/internal/stories"
+	"github.com/Greengrame/greengram-server/internal/wallet"
 	"github.com/Greengrame/greengram-server/internal/web"
 	"github.com/Greengrame/greengram-server/internal/webpage"
 )
@@ -153,12 +154,14 @@ func startOn(t *testing.T, st *store.Store, inst []byte) *stack {
 	a.RegisterPreviews(webpage.New(st.Pool, webpage.NewFetcherFor(func(netip.Addr) bool { return true }), a.PreviewPhoto))
 	ss := stars.New(st.Pool, set)
 	a.RegisterStars(ss)
+	a.RegisterTopup(wallet.New(st.Pool, set, nil, a.Notify).WithSigningKey(secret.FromBytes(inst)))
 	a.RegisterStories(stories.New(st.Pool))
 	rep := reports.New(st.Pool)
 	a.RegisterReports(rep)
 	eraser := erase.New(st.Pool, set)
 	a.RegisterErase(eraser)
 	botSvc := bots.New(st.Pool)
+	botSvc.TokenKey = secret.FromBytes(inst)
 	botAPI, err := a.Bots(ctx, botSvc, "Greengram")
 	if err != nil {
 		t.Fatal(err)

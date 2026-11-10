@@ -39,17 +39,19 @@ The server makes its tables itself on every start (migrations in
 ### 2. Build
 
 ```
-git clone https://github.com/Greengrame/greengram-server
+git clone git@github.com:Greengrame/greengram-server.git
 cd greengram-server
 go build -trimpath -o bin/ ./cmd/greengram-server ./cmd/ggminiapps ./cmd/ggstickers ./cmd/ggcollectibles
-scripts/build-web.sh out
+git clone git@github.com:Greengrame/greengram-webapp.git ../greengram-webapp
+scripts/build-web.sh ../greengram-webapp out
 scripts/build-admin.sh out
 ```
 
-`build-web.sh` downloads Telegram Web A at a pinned commit, checks its
-sha256, applies `web/telegram-web-a.patch` (sign-in through this server,
-Greengram's name and icons) and builds it into `out/web`. It takes a few
-minutes and about 2 GB of memory.
+`build-web.sh <client checkout> out` builds the Greengram client into
+`out/web`. It accepts the `greengram-webapp` repository directly and the
+older checkout with `vendor/telegram-web-a`. The one-argument form downloads
+pinned upstream Telegram Web A, verifies its sha256, and applies the server's
+patch. The build takes a few minutes and about 2 GB of memory.
 
 `build-admin.sh` builds the admin panel from `admin/` into `out/admin`: it
 installs the panel's packages with bun at the versions in `admin/bun.lock`
@@ -147,6 +149,23 @@ curl -X PATCH -b 'session=<cookie>' -H 'Content-Type: application/json' \
 	-d '{"registrationEnabled": false}' https://chat.example.org/api/admin/settings
 ```
 
+### 7. Update using SSH
+
+The repositories support GitHub SSH keys; a personal access token is not
+required. Commit or stash local edits before pulling. From the server checkout:
+
+```sh
+git pull --ff-only
+git -C ../greengram-webapp pull --ff-only
+scripts/build-web.sh ../greengram-webapp out
+go build -trimpath -o bin/ ./cmd/greengram-server
+```
+
+Use `../greengram-web` if that is the existing client folder name. Restart the
+server after building; it applies database migrations at startup. The updated
+client is required for widgets. See [Bot API setup and compatibility](docs/bot-api.md)
+for polling examples, the new methods, and the local GRAM wallet adapter.
+
 ## Optional parts
 
 **Admin panel.** The panel (members, reports, gifts, packs, settings) is in
@@ -185,7 +204,8 @@ collectible gifts from the public changes.tg catalog into a local bundle, and
 
 **Bots.** Bots are made with @BotFather in any client and use the Bot API at
 `https://<site>/bot<token>/<method>`, with `getUpdates` polling (no
-webhooks yet).
+webhooks yet). See [Bot API usage and compatibility](docs/bot-api.md) for
+working methods, uploads, downloads, and Bot API 10.4 coverage.
 
 ## Clients
 

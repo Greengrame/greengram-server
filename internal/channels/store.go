@@ -325,12 +325,12 @@ func (s *Service) addMessage(ctx context.Context, tx pgx.Tx, m Msg, random *int6
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO channel_messages(channel_id, id, from_id, date, post, text, entities, action, reply_to,
 			fwd_from_id, fwd_date, random_id, fwd_channel_id, fwd_channel_msg, media, media_kind, media_id, grouped_id, reply_markup,
-			fwd_from_chan, fwd_from_post, fwd_from_name, topic_id, silent, rich, via_bot_id)
+			fwd_from_chan, fwd_from_post, fwd_from_name, topic_id, silent, rich, via_bot_id, reply_quote)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, nullif($9, 0), nullif($10, 0), nullif($11, 0), $12, nullif($13, 0), nullif($14, 0),
 			$15, nullif($16, ''), nullif($17::bigint, 0), nullif($18::bigint, 0), $19, nullif($20::bigint, 0), nullif($21::int, 0), nullif($22, ''),
-			nullif($23::int, 0), $24, $25, nullif($26::bigint, 0))`,
+			nullif($23::int, 0), $24, $25, nullif($26::bigint, 0), $27)`,
 		m.Channel, m.ID, m.From, m.Date, m.Post, m.Text, ent, action, m.ReplyTo, m.Fwd.User, m.Fwd.Date, random, m.FwdChanID, m.FwdChanMs,
-		mediaTL, m.Media.Kind, m.Media.ID, m.Grouped, markup, m.Fwd.Chan, m.Fwd.Post, m.Fwd.Name, m.Topic, m.Silent, m.Rich, m.ViaBot)
+		mediaTL, m.Media.Kind, m.Media.ID, m.Grouped, markup, m.Fwd.Chan, m.Fwd.Post, m.Fwd.Name, m.Topic, m.Silent, m.Rich, m.ViaBot, m.Quote)
 	if err != nil {
 		return m, nil, err
 	}
@@ -930,7 +930,7 @@ func usernameFree(ctx context.Context, q querier, name string, except int64) (bo
 	var taken bool
 	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE lower(username)=lower($1))
 		OR EXISTS(SELECT 1 FROM channels WHERE lower(username)=lower($1) AND id<>$2)
-		OR EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||lower($1))`, name, except).Scan(&taken)
+		OR EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||lower($1)) OR EXISTS(SELECT 1 FROM bot_secondary_usernames WHERE username=lower($1))`, name, except).Scan(&taken)
 	return !taken, err
 }
 
@@ -951,7 +951,7 @@ func usernameFreeFor(ctx context.Context, q querier, actor int64, name string, e
 	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||lower($1) AND owner_id=$2 AND NOT listed),
 		EXISTS(SELECT 1 FROM users WHERE lower(username)=lower($1))
 		OR EXISTS(SELECT 1 FROM channels WHERE lower(username)=lower($1) AND id<>$3 AND NOT deleted)
-		OR EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||lower($1) AND active)`, name, actor, except).Scan(&owned, &held)
+		OR EXISTS(SELECT 1 FROM fragment_items WHERE kind='username' AND lower(title)='@'||lower($1) AND active) OR EXISTS(SELECT 1 FROM bot_secondary_usernames WHERE username=lower($1))`, name, actor, except).Scan(&owned, &held)
 	if err != nil {
 		return false, err
 	}

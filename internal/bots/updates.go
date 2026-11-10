@@ -83,6 +83,12 @@ func (s *Service) Prune(ctx context.Context) (int64, error) {
 	if _, err = s.db.Exec(ctx, "DELETE FROM bot_inline_queries WHERE created_at < now() - interval '1 hour' AND coalesce(cache_until, 'epoch') < now()"); err != nil {
 		return tag.RowsAffected(), err
 	}
+	if _, err = s.db.Exec(ctx, "DELETE FROM bot_ephemeral_messages WHERE created_at<now()-interval '24 hours'"); err != nil {
+		return tag.RowsAffected(), err
+	}
+	if _, err = s.db.Exec(ctx, "DELETE FROM bot_widget_queries WHERE created_at<now()-interval '1 hour'"); err != nil {
+		return tag.RowsAffected(), err
+	}
 	_, err = s.db.Exec(ctx, "DELETE FROM bot_loop_guard WHERE minute < now() - interval '2 minutes'")
 	return tag.RowsAffected(), err
 }

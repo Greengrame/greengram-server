@@ -29,6 +29,8 @@ You can control me by sending these commands:
 /mybots - edit your bots
 
 Edit Bots
+/settopics - enable or disable private bot topics
+/setsecondaryusername - set a Premium secondary username
 /setname - change a bot's name
 /setdescription - change bot description
 /setabouttext - change bot about info
@@ -161,7 +163,7 @@ func (r *runner) start(ctx context.Context, user int64, c string) error {
 		return r.text(ctx, user, "Alright, a new bot. How are we going to call it? Please choose a name for your bot.")
 	case "mybots":
 		return r.myBots(ctx, user)
-	case "token", "revoke", "setname", "setdescription", "setabouttext", "setcommands", "deletebot":
+	case "token", "revoke", "setsecondaryusername", "settopics", "setname", "setdescription", "setabouttext", "setcommands", "deletebot":
 		return r.choose(ctx, user, &dialog{cmd: c, step: "bot"})
 	}
 	return r.text(ctx, user, "Unrecognized command. Say what?")
@@ -193,6 +195,12 @@ func (r *runner) choose(ctx context.Context, user int64, d *dialog) error {
 func (r *runner) chosen(ctx context.Context, user int64, d *dialog) error {
 	at := "@" + d.bot.Username
 	switch d.cmd {
+	case "settopics":
+		d.step = "value"
+		return r.say(ctx, user, botapi.Out{Text: "Send ON to enable private bot topics or OFF to disable them.", Markup: hide()})
+	case "setsecondaryusername":
+		d.step = "value"
+		return r.say(ctx, user, botapi.Out{Text: "Send a secondary username ending with agent, ai, app, game, or gay. Premium owners can assign names to up to two bots. Send /empty to remove the name.", Markup: hide()})
 	case "token", "revoke":
 		return r.revoke(ctx, user, d.bot)
 	case "deletebot":
@@ -228,6 +236,19 @@ func (r *runner) value(ctx context.Context, user int64, d *dialog, text string) 
 	var err error
 	what := ""
 	switch d.cmd {
+	case "settopics":
+		text = strings.ToLower(strings.TrimSpace(text))
+		if text != "on" && text != "off" {
+			return r.text(ctx, user, "Send ON or OFF.")
+		}
+		what = "Topic mode"
+		err = r.Bots.SetSetting(ctx, d.bot.UserID, "topics", text == "on")
+	case "setsecondaryusername":
+		if strings.TrimSpace(text) == "/empty" {
+			text = ""
+		}
+		what = "Secondary username"
+		err = r.Bots.SetSecondaryUsername(ctx, user, d.bot.UserID, text)
 	case "setname":
 		if strings.TrimSpace(text) == "" || len([]rune(text)) > 64 {
 			return r.text(ctx, user, "Sorry, this name can't be used. Use 1-64 characters.")

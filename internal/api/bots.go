@@ -16,30 +16,33 @@ import (
 	"github.com/Greengrame/greengram-server/internal/account"
 	"github.com/Greengrame/greengram-server/internal/botapi"
 	"github.com/Greengrame/greengram-server/internal/bots"
-	"github.com/Greengrame/greengram-server/internal/miniapps"
 	"github.com/Greengrame/greengram-server/internal/builtin"
 	"github.com/Greengrame/greengram-server/internal/channels"
 	"github.com/Greengrame/greengram-server/internal/edge"
 	"github.com/Greengrame/greengram-server/internal/ids"
 	"github.com/Greengrame/greengram-server/internal/messages"
+	"github.com/Greengrame/greengram-server/internal/miniapps"
 )
 
 // Bots turns bots on: system accounts, the built-in bots, their MTProto
 // methods and the Bot API. siteName names the announcements account.
 // The returned server's Wrap serves /bot<token>/... in front of the mux.
 func (a *API) Bots(ctx context.Context, b *bots.Service, siteName string) (*botapi.Server, error) {
-	sys, err := b.EnsureSystem(ctx, siteName)
+	var sys map[string]int64
+	var err error
+	sys, err = b.EnsureSystem(ctx, siteName)
 	if err != nil {
 		return nil, err
 	}
 	ids.SetAnnouncements(sys[bots.Announcements])
-	if err := b.EnsureBuiltins(ctx, a.in.BaseURL); err != nil {
+	if err = b.EnsureBuiltins(ctx, a.in.BaseURL); err != nil {
 		return nil, err
 	}
 	a.bots = b
-	a.botAPI = &botapi.Server{Bots: b, Accounts: a.accounts, Msgs: a.msgs, Chans: a.chans, Push: a}
+	a.botAPI = &botapi.Server{Bots: b, Accounts: a.accounts, Msgs: a.msgs, Chans: a.chans, Push: a, Media: a.media, Stars: a.stars, BaseURL: a.in.BaseURL, Wallet: a.topup.Load()}
 	go b.Notifier().Run(ctx)
 	a.registerBots()
+	a.registerBotExtensions()
 	go builtin.Run(ctx, builtin.Deps{Bots: b, Msgs: a.msgs, Send: a.botAPI, BaseURL: a.in.BaseURL, Reports: a.reports})
 	return a.botAPI, nil
 }
@@ -80,6 +83,10 @@ func (a *API) registerBots() {
 func botFlags(viewer int64, t *tg.User, b bots.Bot) {
 	t.Status = nil
 	t.SetBotInfoVersion(b.InfoVersion)
+	t.BotBusiness = !b.BuiltIn()
+	t.BotCanManageBots = !b.BuiltIn()
+	t.BotForumView = bool(b.State.Settings.Topics)
+	t.BotForumCanManageTopics = bool(b.State.Settings.Topics)
 	t.BotHasMainApp = b.MainAppURL != ""
 	t.BotCanEdit = b.OwnerID == viewer
 	t.BotNochats = !b.State.AllowGroups()
@@ -110,6 +117,11 @@ func menuTL(m *bots.MenuButton) tg.BotMenuButtonClass {
 
 // botFull fills bot_info in users.getFullUser.
 func (a *API) botFull(ctx context.Context, viewer int64, full *tg.UserFull, u account.User) {
+	full.ShareTheme = a.peerShareTheme(ctx, u.ID, false)
+	full.WalletCard = a.localWalletCard(ctx, u.ID)
+	if a.bots != nil {
+		full.BotVerification = a.peerVerification(ctx, u.ID, false)
+	}
 	if a.bots == nil || !u.IsBot {
 		return
 	}
@@ -122,6 +134,7 @@ func (a *API) botFull(ctx context.Context, viewer int64, full *tg.UserFull, u ac
 		slog.Warn("api: bot menu", "err", err)
 	}
 	info := tg.BotInfo{}
+	info.VerifierSettings, _ = a.bots.Verifier(ctx, b.UserID)
 	info.SetUserID(ids.Client(b.UserID))
 	info.SetDescription(b.Description)
 	info.SetCommands(commandsTL(b.Commands))

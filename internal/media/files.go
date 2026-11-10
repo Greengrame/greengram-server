@@ -24,11 +24,17 @@ func (s *Service) FromInput(ctx context.Context, owner int64, in tg.InputMediaCl
 		if err != nil {
 			return Ref{}, err
 		}
+		if v.LivePhoto {
+			return s.LivePhoto(ctx, s.PhotoRef(p, v.Spoiler), v.Video)
+		}
 		return s.PhotoRef(p, v.Spoiler), nil
 	case *tg.InputMediaPhoto:
 		p, err := s.InputPhoto(ctx, v.ID)
 		if err != nil {
 			return Ref{}, err
+		}
+		if v.LivePhoto {
+			return s.LivePhoto(ctx, s.PhotoRef(p, v.Spoiler), v.Video)
 		}
 		return s.PhotoRef(p, v.Spoiler), nil
 	case *tg.InputMediaUploadedDocument:

@@ -83,6 +83,7 @@ func (a *API) Register(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/admin/users/{id}/sessions/{session}", a.handle(a.endUserSessions))
 	mux.HandleFunc("GET /api/admin/bots/{id}", a.handle(a.botDetail))
 	mux.HandleFunc("PATCH /api/admin/bots/{id}", a.handle(a.editBot))
+	mux.HandleFunc("PATCH /api/admin/bots/{id}/verifier", a.handle(a.editBotVerifier))
 	mux.HandleFunc("PATCH /api/admin/verification", a.handle(a.verification))
 	mux.HandleFunc("GET /api/admin/sessions", a.handle(a.sessions))
 	mux.HandleFunc("DELETE /api/admin/sessions", a.handle(a.endSessions))
