@@ -192,6 +192,7 @@ func run() error {
 	adm.AccessChanged = a.AccessChanged
 	adm.Erased = a.AccountErased
 	adm.IdentityReset = a.IdentityReset
+	auth.PhoneChanged = a.IdentityReset
 	adm.AnswerAppeal = a.AnswerAppeal
 	adm.Moderator = a
 	adm.Extra = append(adm.Extra, func(ctx context.Context, out map[string]any) error {

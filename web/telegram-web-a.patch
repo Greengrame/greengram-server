@@ -3576,3 +3576,312 @@ index 2518d4d..fada890 100644
  account.getAccountTTL#8fc711d = AccountDaysTTL;
  account.setAccountTTL#2442485e ttl:AccountDaysTTL = Bool;
  account.getAuthorizations#e320c158 = account.Authorizations;
+diff --git a/src/api/gramjs/methods/account.ts b/src/api/gramjs/methods/account.ts
+index 772120b..ac0fee4 100644
+--- a/src/api/gramjs/methods/account.ts
++++ b/src/api/gramjs/methods/account.ts
+@@ -1,5 +1,5 @@
+ import { Api as GramJs } from '../../../lib/gramjs';
+-import { confirmGreengramDeletion, greengramDeletionInfo } from '../../../lib/gramjs/greengram';
++import { changeGreengramPhone, confirmGreengramDeletion, greengramDeletionInfo } from '../../../lib/gramjs/greengram';
+ 
+ import type {
+   ApiAudio, ApiPeer, ApiPhoto, ApiProfileTab, ApiReportReason,
+@@ -146,6 +146,16 @@ export async function deleteGreengramAccount({ password, reason }: { password: s
+   }
+ }
+ 
++// Greengram: Change Number, see changeGreengramPhone.
++export async function changeGreengramNumber({ phone, password }: { phone: string; password: string }) {
++  try {
++    const refused = await changeGreengramPhone(phone, password);
++    return refused ? { error: refused } : { ok: true as const };
++  } catch (err: unknown) {
++    return { error: (err as { message?: string }).message || 'The number could not be changed.' };
++  }
++}
++
+ export function setAccountTTL({ days }: { days: number }) {
+   return invokeRequest(new GramJs.account.SetAccountTTL({
+     ttl: buildApiAccountDaysTTL(days),
+diff --git a/src/assets/localization/fallback.strings b/src/assets/localization/fallback.strings
+index 47a5351..6f0bc37 100644
+--- a/src/assets/localization/fallback.strings
++++ b/src/assets/localization/fallback.strings
+@@ -492,7 +492,7 @@
+ "FirstName" = "First name (required)";
+ "LastName" = "Last name";
+ "SettingsAboutBio" = "Any details such as age, occupation or city.\nExample: 23 y.o. designer from San Francisco";
+-"UsernameHelp" = "You can choose a username on **Telegram**. If you do, people will be able to find you by this username and contact you without knowing your phone number.\n\nYou can use **a–z**, **0–9** and underscores.\nMinimum length is **5** characters.";
++"UsernameHelp" = "You can choose a username on **Greengram**. If you do, people will be able to find you by this username and contact you without knowing your phone number.\n\nYou can use **a–z**, **0–9** and underscores.\nMinimum length is **3** characters.";
+ "UsernameLink" = "This link opens a chat with you:";
+ "SettingsExperimentalAbout" = "Warning! Those are experimental settings. Some may not work. Others may break the app. Any of them may disappear in the next version without a trace. Use at your own risk.";
+ "EmptyChatAppearanceLight" = "Light";
+@@ -4523,3 +4523,8 @@
+ "GreengramDeleteAccountText" = "This signs you out everywhere and cannot be undone. Your name, username, phone number and photos go. You leave every group and channel, and the ones you own pass to an admin. Your Stars, wallet balance, collectible gifts, usernames and numbers are not returned to you. Your messages stay in other people's chats as Deleted Account.";
+ "GreengramDeleteAccountPassword" = "Your password";
+ "GreengramDeleteAccountConfirm" = "Delete account";
++"GreengramChangeNumber" = "Change Number";
++"GreengramChangeNumberText" = "Pick any free number. It is what you sign in with, nobody calls or texts it. Your old number is given up, and you stay signed in everywhere.";
++"GreengramChangeNumberNew" = "New number";
++"GreengramChangeNumberPassword" = "Your password";
++"GreengramChangeNumberHelp" = "The number you sign in with. People see it only if your privacy settings let them.";
+diff --git a/src/components/left/settings/ChangeNumberModal.tsx b/src/components/left/settings/ChangeNumberModal.tsx
+new file mode 100644
+index 0000000..3d64e9a
+--- /dev/null
++++ b/src/components/left/settings/ChangeNumberModal.tsx
+@@ -0,0 +1,115 @@
++// Greengram: change the sign-in number from Edit Profile. Numbers here are
++// made up, so there is no code to wait for: the instance checks the
++// password over HTTPS and the new number arrives as updateUserPhone.
++
++import type { ChangeEvent } from 'react';
++import { memo, useEffect, useState } from '../../../lib/teact/teact';
++
++import { callApi } from '../../../api/gramjs';
++
++import useLang from '../../../hooks/useLang';
++import useLastCallback from '../../../hooks/useLastCallback';
++
++import PasswordForm from '../../common/PasswordForm';
++import ConfirmDialog from '../../ui/ConfirmDialog';
++import InputText from '../../ui/InputText';
++
++type OwnProps = {
++  isOpen: boolean;
++  onClose: NoneToVoidFunction;
++};
++
++const PHONE_FILTER = /[^0-9+ ()-]/g;
++
++const ChangeNumberModal = ({ isOpen, onClose }: OwnProps) => {
++  const lang = useLang();
++
++  const [hasPassword, setHasPassword] = useState(true);
++  const [phone, setPhone] = useState('+');
++  const [password, setPassword] = useState('');
++  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
++  const [error, setError] = useState<string | undefined>();
++  const [isLoading, setIsLoading] = useState(false);
++
++  useEffect(() => {
++    if (!isOpen) return;
++    callApi('fetchGreengramDeletion').then((info) => {
++      if (info) setHasPassword(info.hasPassword);
++    });
++  }, [isOpen]);
++
++  const digits = phone.replace(/\D/g, '');
++  const isReady = digits.length >= 4 && (!hasPassword || Boolean(password));
++
++  const reset = useLastCallback(() => {
++    setPhone('+');
++    setPassword('');
++    setError(undefined);
++    setIsPasswordVisible(false);
++  });
++
++  const handleClose = useLastCallback(() => {
++    if (isLoading) return;
++    reset();
++    onClose();
++  });
++
++  const handleClearError = useLastCallback(() => {
++    setError(undefined);
++  });
++
++  const handlePhoneChange = useLastCallback((e: ChangeEvent<HTMLInputElement>) => {
++    const value = e.target.value.replace(PHONE_FILTER, '');
++    setPhone(value.startsWith('+') ? value : `+${value}`);
++    setError(undefined);
++  });
++
++  const handleConfirm = useLastCallback(async () => {
++    if (isLoading || !isReady) return;
++    setIsLoading(true);
++    setError(undefined);
++    const result = await callApi('changeGreengramNumber', { phone: `+${digits}`, password });
++    setIsLoading(false);
++    if (!result || result.error) {
++      setError(result?.error || lang('ErrorUnexpected'));
++      return;
++    }
++    reset();
++    onClose();
++  });
++
++  return (
++    <ConfirmDialog
++      isOpen={isOpen}
++      title={lang('GreengramChangeNumber')}
++      confirmLabel={lang('GreengramChangeNumber')}
++      confirmHandler={handleConfirm}
++      isConfirmDisabled={isLoading || !isReady}
++      onClose={handleClose}
++    >
++      <p>{lang('GreengramChangeNumberText')}</p>
++      <InputText
++        value={phone}
++        label={lang('GreengramChangeNumberNew')}
++        inputMode="tel"
++        disabled={isLoading}
++        error={hasPassword ? undefined : error}
++        onChange={handlePhoneChange}
++      />
++      {hasPassword && (
++        <PasswordForm
++          error={error}
++          placeholder={lang('GreengramChangeNumberPassword')}
++          isLoading={isLoading}
++          isPasswordVisible={isPasswordVisible}
++          shouldDisablePasswordManager
++          onChangePasswordVisibility={setIsPasswordVisible}
++          onClearError={handleClearError}
++          onInputChange={setPassword}
++        />
++      )}
++    </ConfirmDialog>
++  );
++};
++
++export default memo(ChangeNumberModal);
+diff --git a/src/components/left/settings/SettingsEditProfile.tsx b/src/components/left/settings/SettingsEditProfile.tsx
+index d099a67..11d6185 100644
+--- a/src/components/left/settings/SettingsEditProfile.tsx
++++ b/src/components/left/settings/SettingsEditProfile.tsx
+@@ -44,6 +44,7 @@ import Link from '../../ui/Link';
+ import ListItem from '../../ui/ListItem';
+ import TextArea from '../../ui/TextArea';
+ import Chat from '../main/Chat';
++import ChangeNumberModal from './ChangeNumberModal';
+ 
+ import styles from './SettingsEditProfile.module.scss';
+ 
+@@ -68,6 +69,7 @@ type StateProps = {
+   maxBioLength: number;
+   personalChannelIds?: string[];
+   usernames?: ApiUsername[];
++  currentPhone?: string;
+ };
+ 
+ const runThrottled = throttle((cb) => cb(), 60000, true);
+@@ -91,6 +93,7 @@ const SettingsEditProfile = ({
+   maxBioLength,
+   personalChannelIds,
+   usernames,
++  currentPhone,
+   onReset,
+ }: OwnProps & StateProps) => {
+   const {
+@@ -119,6 +122,7 @@ const SettingsEditProfile = ({
+   const [personalChannelId, setPersonalChannelId] = useState(currentPersonalChannelId);
+   const [personalChannelSearch, setPersonalChannelSearch] = useState('');
+   const [isPersonalChannelPickerOpen, openPersonalChannelPicker, closePersonalChannelPicker] = useFlag();
++  const [isChangeNumberOpen, openChangeNumber, closeChangeNumber] = useFlag();
+ 
+   const selectPersonalChannel = useCallback((global: GlobalState) => {
+     return personalChannelId ? selectChat(global, personalChannelId) : undefined;
+@@ -395,6 +399,23 @@ const SettingsEditProfile = ({
+           }, { withNodes: true })}
+         </IslandDescription>
+ 
++        <Island>
++          <ListItem
++            icon="phone"
++            iconBg="green"
++            narrow
++            rightElement={currentPhone ?
++              <span className="settings-birthday-date">{`+${currentPhone}`}</span>
++              : undefined}
++            onClick={openChangeNumber}
++          >
++            <span className="flex-grow">{lang('GreengramChangeNumber')}</span>
++          </ListItem>
++        </Island>
++        <IslandDescription dir={lang.isRtl ? 'rtl' : undefined}>
++          {lang('GreengramChangeNumberHelp')}
++        </IslandDescription>
++
+         <IslandTitle dir={lang.isRtl ? 'rtl' : undefined}>{lang('Username')}</IslandTitle>
+         <Island>
+           <div className="settings-input">
+@@ -474,6 +495,8 @@ const SettingsEditProfile = ({
+         isLoading={isLoading}
+       />
+ 
++      <ChangeNumberModal isOpen={isChangeNumberOpen} onClose={closeChangeNumber} />
++
+       <ChatOrUserPicker
+         isOpen={isPersonalChannelPickerOpen}
+         chatOrUserIds={filteredPersonalChannelIds}
+@@ -504,6 +527,7 @@ export default memo(withGlobal<OwnProps>(
+       firstName: currentFirstName,
+       lastName: currentLastName,
+       usernames,
++      phoneNumber: currentPhone,
+     } = currentUser || {};
+     const currentUserFullInfo = currentUserId ? selectUserFullInfo(global, currentUserId) : undefined;
+     const currentPersonalChannelId = currentUserFullInfo?.personalChannelId;
+@@ -528,6 +552,7 @@ export default memo(withGlobal<OwnProps>(
+       maxBioLength,
+       personalChannelIds: global.chats.personalChannelIds,
+       usernames,
++      currentPhone,
+     };
+   },
+ )(SettingsEditProfile));
+diff --git a/src/lib/gramjs/greengram.ts b/src/lib/gramjs/greengram.ts
+index bd99367..6cbf86d 100644
+--- a/src/lib/gramjs/greengram.ts
++++ b/src/lib/gramjs/greengram.ts
+@@ -124,3 +124,19 @@ export async function confirmGreengramDeletion(password: string): Promise<string
+   const data = await response.json().catch(() => ({})) as { error?: string };
+   return data.error || `Error ${response.status}`;
+ }
++
++// Change Number on the website: the new number and the sign-in password,
++// checked by the server over HTTPS. The new number comes back to every app
++// as updateUserPhone.
++export async function changeGreengramPhone(phone: string, password: string): Promise<string | undefined> {
++  const slot = accountSlot();
++  const response = await fetch(`${greengramOrigin()}/api/account/phone`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json', ...(slot && { 'X-Greengram-Account': slot }) },
++    body: JSON.stringify({ phone, password }),
++    credentials: 'same-origin',
++  });
++  if (response.ok) return undefined;
++  const data = await response.json().catch(() => ({})) as { error?: string };
++  return data.error || `Error ${response.status}`;
++}
+diff --git a/src/types/language.d.ts b/src/types/language.d.ts
+index 029fe9f..e93d95e 100644
+--- a/src/types/language.d.ts
++++ b/src/types/language.d.ts
+@@ -3385,6 +3385,11 @@ export interface LangPair {
+   'GreengramDeleteAccountText': undefined;
+   'GreengramDeleteAccountPassword': undefined;
+   'GreengramDeleteAccountConfirm': undefined;
++  'GreengramChangeNumber': undefined;
++  'GreengramChangeNumberText': undefined;
++  'GreengramChangeNumberNew': undefined;
++  'GreengramChangeNumberPassword': undefined;
++  'GreengramChangeNumberHelp': undefined;
+ }
+ 
+ export interface LangPairWithVariables<V = LangVariable> {
+diff --git a/src/util/entities/username.ts b/src/util/entities/username.ts
+index 2196816..a7ae93a 100644
+--- a/src/util/entities/username.ts
++++ b/src/util/entities/username.ts
+@@ -1,6 +1,7 @@
+ // Greengram: admins list shorter and digit-only names on Fragment, links to them must open
+ export const MIN_USERNAME_LENGTH = 1;
+-export const MIN_UPDATE_USERNAME_LENGTH = 5; // 4 letter usernames are only available on Fragment
++// Greengram: the server takes names from three letters, there is no Fragment-only length
++export const MIN_UPDATE_USERNAME_LENGTH = 3;
+ export const MAX_USERNAME_LENGTH = 32;
+ export const USERNAME_REGEX = /^[a-zA-Z]\w+$/;
+ const COLLECTIBLE_USERNAME_REGEX = /^\w+$/;

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/Greengrame/greengram-server/internal/password"
 )
 
 // Changing the sign-in number, Telegram's Change Number: ask for a code,
@@ -138,23 +140,7 @@ func (s *Service) ChangePhone(ctx context.Context, user int64, phone, hash, code
 		if err := s.phoneFree(ctx, tx, user, phone); err != nil {
 			return err
 		}
-		lookup := s.secret.PhoneLookup(phone)
-		if _, err := tx.Exec(ctx, "DELETE FROM phone_changes WHERE user_id=$1", user); err != nil {
-			return err
-		}
-		// a kept number that becomes the number again is no alias
-		if _, err := tx.Exec(ctx, "DELETE FROM phone_aliases WHERE user_id=$1 AND lookup=$2", user, lookup); err != nil {
-			return err
-		}
-		// the collectible shown as the number, and the number it replaced
-		if _, err := tx.Exec(ctx, "DELETE FROM fragment_assignments WHERE user_id=$1", user); err != nil {
-			return err
-		}
-		own, err := s.secret.EncryptPhone(phone, fmt.Sprintf("user:%d", user))
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, "UPDATE users SET phone=$2, phone_lookup=$3 WHERE id=$1", user, own, lookup); err != nil {
+		if err := s.setPhone(ctx, tx, user, phone); err != nil {
 			return err
 		}
 		u.Phone = phone
@@ -164,4 +150,81 @@ func (s *Service) ChangePhone(ctx context.Context, user int64, phone, hash, code
 		err = wrong
 	}
 	return u, err
+}
+
+// setPhone makes phone the account's number and clears what the old one
+// left behind. The caller has checked phoneFree.
+func (s *Service) setPhone(ctx context.Context, tx pgx.Tx, user int64, phone string) error {
+	lookup := s.secret.PhoneLookup(phone)
+	if _, err := tx.Exec(ctx, "DELETE FROM phone_changes WHERE user_id=$1", user); err != nil {
+		return err
+	}
+	// a kept number that becomes the number again is no alias
+	if _, err := tx.Exec(ctx, "DELETE FROM phone_aliases WHERE user_id=$1 AND lookup=$2", user, lookup); err != nil {
+		return err
+	}
+	// the collectible shown as the number, and the number it replaced
+	if _, err := tx.Exec(ctx, "DELETE FROM fragment_assignments WHERE user_id=$1", user); err != nil {
+		return err
+	}
+	own, err := s.secret.EncryptPhone(phone, fmt.Sprintf("user:%d", user))
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, "UPDATE users SET phone=$2, phone_lookup=$3 WHERE id=$1", user, own, lookup)
+	return err
+}
+
+// phoneChangeText is what the website says for the names the apps get.
+var phoneChangeText = map[string]string{
+	"PHONE_NUMBER_INVALID":  "Enter a phone number with 4–16 digits including the country code.",
+	"PHONE_NUMBER_OCCUPIED": "This number is already in use.",
+}
+
+// ChangePhoneWithPassword is the website's Change Number: the session's
+// password stands in for the code, over HTTPS like every password here. An
+// account without one (imported, never set) passes as it is.
+func (s *Service) ChangePhoneWithPassword(ctx context.Context, sessionToken, phone, pw string, c Client) (User, error) {
+	u, _, err := s.SessionUser(ctx, sessionToken)
+	if err != nil {
+		return User{}, err
+	}
+	phone = "+" + digits(phone)
+	if u.IsBot || u.IsSystem {
+		return User{}, fail(403, "This account can't change its number.")
+	}
+	if s.settings.Get(ctx).SignupGeneratedNumbers {
+		return User{}, fail(403, "Numbers are handed out by this instance and can't be changed.")
+	}
+	if u.State != "active" {
+		return User{}, fail(403, "This account can't change its number.")
+	}
+	if err := s.limits.hit(fmt.Sprintf("phone-change:%d:%s", u.ID, limitIP(c.IP)), 5, 10*time.Minute, s.now()); err != nil {
+		return User{}, err
+	}
+	if u.HasPassword() && (len(pw) > 256 || !password.Verify(pw, u.password)) {
+		return User{}, fail(400, "That password is not correct.")
+	}
+	err = s.inTx(ctx, func(tx pgx.Tx) error {
+		var hash string
+		if err := tx.QueryRow(ctx, "SELECT password FROM users WHERE id=$1 FOR UPDATE", u.ID).Scan(&hash); err != nil {
+			return err
+		}
+		if hash != u.password {
+			return fail(409, "Your password changed in another session. Sign in again.")
+		}
+		if err := s.phoneFree(ctx, tx, u.ID, phone); err != nil {
+			var e *Error
+			if errors.As(err, &e) && phoneChangeText[e.Message] != "" {
+				return fail(e.Status, phoneChangeText[e.Message])
+			}
+			return err
+		}
+		return s.setPhone(ctx, tx, u.ID, phone)
+	})
+	if err != nil {
+		return User{}, err
+	}
+	u.Phone = phone
+	return u, nil
 }

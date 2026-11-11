@@ -130,6 +130,32 @@ func TestPhoneChange(t *testing.T) {
 	if _, id := phoneSignUp(t, s, old, "dan", "correct horse dan"); id == 0 || id == bob.id {
 		t.Fatalf("the old number went to %d", id)
 	}
+	// the website's way: the password instead of a code
+	const third = "+380931112233"
+	web := s.browser(t)
+	web.must("/api/auth/start", map[string]string{"mode": "phone"})
+	web.must("/api/auth/code", map[string]string{"phone": next})
+	web.must("/api/auth/password", map[string]string{"password": pw})
+	for _, c := range []struct {
+		phone, pw string
+		code      int
+	}{{third, "not the password", 400}, {old, pw, 400}, {"+12", pw, 400}} {
+		if code, out := web.post("/api/account/phone", map[string]string{"phone": c.phone, "password": c.pw}); code != c.code {
+			t.Fatalf("change to %s: %d %v", c.phone, code, out)
+		}
+	}
+	if out := web.must("/api/account/phone", map[string]string{"phone": third, "password": pw}); out["phoneNumber"] != third {
+		t.Fatalf("changed: %v", out)
+	}
+	if code, _ := s.browser(t).post("/api/account/phone", map[string]string{"phone": "+380931112244", "password": pw}); code != 401 {
+		t.Fatalf("no session: %d", code)
+	}
+	if _, code := phoneSignIn(t, s, next, pw); code != 401 {
+		t.Fatalf("sign-in with the second number: %d", code)
+	}
+	if id, code := phoneSignIn(t, s, third, pw); id != bob.id {
+		t.Fatalf("sign-in with the third number: %d %d", id, code)
+	}
 	var left int
 	if err := s.db.Pool.QueryRow(context.Background(), "SELECT count(*) FROM phone_changes").Scan(&left); err != nil || left != 0 {
 		t.Fatalf("changes left: %d %v", left, err)

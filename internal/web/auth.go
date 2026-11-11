@@ -26,6 +26,8 @@ type Auth struct {
 	Bots *bots.Service
 	// SecureCookies adds Secure; set when the site is served over HTTPS.
 	SecureCookies bool
+	// PhoneChanged tells the account's apps and contacts about a new number.
+	PhoneChanged func(user int64)
 }
 
 func (a *Auth) Register(mux *http.ServeMux) {
@@ -38,6 +40,7 @@ func (a *Auth) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/password/set", a.handle(a.setPassword))
 	mux.HandleFunc("GET /api/account/deletion", a.handle(a.deletion))
 	mux.HandleFunc("POST /api/account/deletion", a.handle(a.confirmDeletion))
+	mux.HandleFunc("POST /api/account/phone", a.handle(a.changePhone))
 	mux.HandleFunc("POST /api/auth/approve", a.handle(a.approve))
 	mux.HandleFunc("GET /api/auth/status", a.handle(a.status))
 	mux.HandleFunc("POST /api/auth/webtoken", a.handle(a.webToken))
@@ -222,6 +225,19 @@ func (a *Auth) deletion(q *req) (any, error) {
 
 func (a *Auth) confirmDeletion(q *req) (any, error) {
 	return ok(a.Accounts.ConfirmDeletion(q.ctx, q.cookie("session"), q.str("password"), q.client()))
+}
+
+// changePhone is the website's Change Number: the new number and the
+// password, no code (see account.ChangePhoneWithPassword).
+func (a *Auth) changePhone(q *req) (any, error) {
+	u, err := a.Accounts.ChangePhoneWithPassword(q.ctx, q.cookie("session"), q.str("phone"), q.str("password"), q.client())
+	if err != nil {
+		return nil, err
+	}
+	if a.PhoneChanged != nil {
+		go a.PhoneChanged(u.ID)
+	}
+	return map[string]any{"ok": true, "phoneNumber": u.Phone}, nil
 }
 
 func (a *Auth) approve(q *req) (any, error) {
