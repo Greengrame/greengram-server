@@ -66,6 +66,7 @@ func Register(srv *edge.Server, in Instance, accounts *account.Service, msgs *me
 	a.registerUsers()
 	a.registerAccount()
 	a.registerProfile()
+	a.registerPhone()
 	a.registerPeople()
 	a.registerHelpData()
 	a.registerSaved()
